@@ -103,6 +103,58 @@ const ui = {
     zone.ondrop = e => { e.preventDefault(); zone.classList.remove('over'); fire(e.dataTransfer.files); };
     zone.append(input);
     return { zone, list, setNames: names => { list.textContent = ''; names.forEach(n => list.append(el('div', { text: n }))); } };
+  },
+  /* 360° progress ring. size in px, stroke in px. set(frac 0..1, main, sub). */
+  ring({ size = 240, stroke = 12 } = {}){
+    const NS = 'http://www.w3.org/2000/svg';
+    const c = size / 2;
+    const r = (size - stroke) / 2;
+    const circ = 2 * Math.PI * r;
+    const mk = (tag, attrs = {}) => {
+      const n = document.createElementNS(NS, tag);
+      for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+      return n;
+    };
+    const svg = mk('svg', { viewBox: `0 0 ${size} ${size}`, width: size, height: size });
+    svg.style.display = 'block';
+
+    const track = mk('circle', { cx: c, cy: c, r, fill: 'none', 'stroke-width': stroke });
+    track.style.stroke = 'var(--line2)';
+
+    const prog = mk('circle', {
+      cx: c, cy: c, r, fill: 'none',
+      'stroke-width': stroke, 'stroke-linecap': 'round',
+      'stroke-dasharray': circ, 'stroke-dashoffset': circ,
+      transform: `rotate(-90 ${c} ${c})`
+    });
+    prog.style.stroke = 'var(--accent)';
+
+    const main = mk('text', {
+      x: c, y: c + size * 0.06, 'text-anchor': 'middle',
+      'font-size': size * 0.17, 'font-weight': '600'
+    });
+    main.style.fill = 'var(--text)';
+    main.style.fontFamily = 'var(--mono)';
+    main.style.fontVariantNumeric = 'tabular-nums';
+
+    const sub = mk('text', {
+      x: c, y: c + size * 0.19, 'text-anchor': 'middle',
+      'font-size': size * 0.072
+    });
+    sub.style.fill = 'var(--muted)';
+    sub.style.fontFamily = 'var(--mono)';
+
+    svg.append(track, prog, main, sub);
+
+    return {
+      node: svg,
+      set(frac, m = '', s = ''){
+        const f = Math.max(0, Math.min(1, frac || 0));
+        prog.setAttribute('stroke-dashoffset', String(circ * (1 - f)));
+        main.textContent = m;
+        sub.textContent = s;
+      }
+    };
   }
 };
 
@@ -166,7 +218,6 @@ function markRecent(id){
 
 /* ---------- card ---------- */
 function card(t){
-  const fav = S.favs.includes(t.id);
   return el('a', { class: 'card', href: '#/t/' + t.id },
     el('div', { class: 'mono-badge', text: (CATS.find(c => c.id === t.cat)?.mono) || '··' }),
     el('div', { class: 'card-b' },
