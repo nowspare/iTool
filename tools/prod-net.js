@@ -152,25 +152,97 @@ tool({
 
 tool({
   id: 'stopwatch', cat: 'prod', name: 'Stopwatch',
-  desc: 'Elapsed time with lap splits and millisecond precision.',
-  keywords: 'stopwatch timer lap elapsed',
+  desc: '360° sixty-second sweep dial with hundredths, lap splits, and tick marks.',
+  keywords: 'stopwatch timer lap elapsed dial',
   render(w){
-    const disp = el('div', { class: 'big-num', text: '00:00.00' });
+    const SIZE = 260;
+    const ring = $.ring({ size: SIZE, stroke: 10 });
+
+    const NS = 'http://www.w3.org/2000/svg';
+    const c = SIZE / 2;
+    for (let i = 0; i < 60; i++){
+      const a = (i * 6) * Math.PI / 180;
+      const major = i % 5 === 0;
+      const outer = c - 14;
+      const inner = outer - (major ? 9 : 4);
+      const line = document.createElementNS(NS, 'line');
+      line.setAttribute('x1', String(c + Math.sin(a) * inner));
+      line.setAttribute('y1', String(c - Math.cos(a) * inner));
+      line.setAttribute('x2', String(c + Math.sin(a) * outer));
+      line.setAttribute('y2', String(c - Math.cos(a) * outer));
+      line.setAttribute('stroke', major ? 'var(--line2)' : 'var(--line)');
+      line.setAttribute('stroke-width', major ? '1.6' : '1');
+      ring.node.append(line);
+    }
+
     const laps = el('div', { class: 'list' });
-    let start = 0, elapsed = 0, id = 0, running = false;
-    const fmt = ms => `${String(Math.floor(ms / 60000)).padStart(2, '0')}:${String(Math.floor(ms % 60000 / 1000)).padStart(2, '0')}.${String(Math.floor(ms % 1000 / 10)).padStart(2, '0')}`;
-    const paint = () => { disp.textContent = fmt(elapsed + (running ? performance.now() - start : 0)); };
-    const loop = () => { paint(); id = requestAnimationFrame(loop); };
+    const SWEEP = 60000;
+
+    let startAt = 0, elapsed = 0, raf = 0, running = false;
+
+    const now = () => elapsed + (running ? performance.now() - startAt : 0);
+
+    const paint = t => {
+      const mm = Math.floor(t / 60000);
+      const ss = Math.floor(t % 60000 / 1000);
+      const cc = Math.floor(t % 1000 / 10);
+      ring.set((t % SWEEP) / SWEEP,
+        `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`,
+        `.${String(cc).padStart(2, '0')}`);
+    };
+
+    const loop = () => {
+      if (!running) return;
+      paint(now());
+      raf = requestAnimationFrame(loop);
+    };
+
     const toggle = () => {
-      if (running){ elapsed += performance.now() - start; running = false; cancelAnimationFrame(id); paint(); }
-      else { start = performance.now(); running = true; loop(); }
+      if (running){
+        elapsed += performance.now() - startAt;
+        running = false;
+        cancelAnimationFrame(raf);
+        paint(elapsed);
+      } else {
+        startAt = performance.now();
+        running = true;
+        loop();
+      }
+      toggleBtn.textContent = running ? 'Stop' : elapsed > 0 ? 'Resume' : 'Start';
     };
+
     const lap = () => {
-      const t = elapsed + (running ? performance.now() - start : 0);
-      laps.prepend(el('div', { class: 'item' }, el('span', { text: fmt(t) })));
+      const t = now();
+      const prev = laps.firstElementChild?.dataset.t ? +laps.firstElementChild.dataset.t : 0;
+      const split = t - prev;
+      const row = el('div', { class: 'item', 'data-t': String(t) },
+        el('span', { class: 'fl', style: { width: '46px', flex: 'none' }, text: `#${laps.children.length + 1}` }),
+        el('span', { style: { fontFamily: 'var(--mono)', fontVariantNumeric: 'tabular-nums' },
+          text: `${String(Math.floor(t / 60000)).padStart(2, '0')}:${String(Math.floor(t % 60000 / 1000)).padStart(2, '0')}.${String(Math.floor(t % 1000 / 10)).padStart(2, '0')}` }),
+        el('span', { class: 'hint', style: { marginLeft: 'auto', fontFamily: 'var(--mono)' },
+          text: `+${String(Math.floor(split / 60000)).padStart(2, '0')}:${String(Math.floor(split % 60000 / 1000)).padStart(2, '0')}.${String(Math.floor(split % 1000 / 10)).padStart(2, '0')}` })
+      );
+      laps.prepend(row);
     };
-    w.addEventListener('uh:unmount', () => cancelAnimationFrame(id));
-    w.append(disp, $.row($.btn('Start / Stop', toggle, true), $.btn('Lap', lap), $.btn('Reset', () => { cancelAnimationFrame(id); running = false; elapsed = 0; laps.replaceChildren(); paint(); })), laps);
+
+    const reset = () => {
+      running = false;
+      cancelAnimationFrame(raf);
+      elapsed = 0;
+      laps.replaceChildren();
+      toggleBtn.textContent = 'Start';
+      paint(0);
+    };
+
+    const toggleBtn = $.btn('Start', toggle, true);
+
+    w.addEventListener('uh:unmount', () => { cancelAnimationFrame(raf); running = false; });
+    paint(0);
+    w.append(
+      el('div', { style: { display: 'grid', placeItems: 'center' } }, ring.node),
+      $.row(toggleBtn, $.btn('Lap', lap), $.btn('Reset', reset)),
+      laps
+    );
   }
 });
 
