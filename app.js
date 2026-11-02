@@ -1,4 +1,4 @@
-/* UtilityHub engine — registry, router, search, themes, storage, lazy libs */
+/* iHub engine — registry, router, search, themes, storage, lazy libs */
 (() => {
 'use strict';
 
@@ -181,11 +181,11 @@ const S = {
 };
 
 const THEMES = [
-  { id: 'snow',     name: 'Snow White', sw: '#ffffff' },
-  { id: 'midnight', name: 'Midnight',   sw: '#0d1015' },
-  { id: 'sand',     name: 'Warm Sand',  sw: '#e8ddca' },
+  { id: 'snow',     name: 'Snow White',    sw: '#ffffff' },
+  { id: 'midnight', name: 'Midnight',      sw: '#0d1015' },
+  { id: 'sand',     name: 'Warm Sand',     sw: '#e8ddca' },
   { id: 'lavender', name: 'Soft Lavender', sw: '#e2daf7' },
-  { id: 'slate',    name: 'Slate',      sw: '#cfd7df' }
+  { id: 'slate',    name: 'Slate',         sw: '#cfd7df' }
 ];
 
 function applyTheme(){
@@ -196,39 +196,25 @@ function applyTheme(){
   store.set('theme', S.theme); store.set('mode', S.mode);
 }
 
-/* ---------- splash ---------- */
+/* ---------- splash: timer only, no skip, no dismissal ---------- */
 function runSplash(){
   const sp = document.getElementById('splash');
   if (!sp) return;
+  if (/[?&]nosplash=1/.test(location.search)){ sp.remove(); return; }
 
-  const force = /[?&]splash=1/.test(location.search);
-  const shown = sessionStorage.getItem('uh.splash') === '1';
-  if (shown && !force){ sp.remove(); return; }
-
-  /* clamp to your 5–10s window; data-duration overrides */
-  const raw = +(sp.dataset.duration) || 5500;
+  /* duration clamped to 5–10s; default from the data attribute is 6600ms */
+  const raw = +(sp.dataset.duration) || 6600;
   const dur = Math.max(5000, Math.min(10000, raw));
-  sp.style.setProperty('--sp-dur', dur + 'ms');
+  const fade = 600;                        /* fade-out length at the end */
 
   const prevOverflow = document.body.style.overflow;
   document.body.style.overflow = 'hidden';
 
-  let closed = false;
-  const finish = () => {
-    if (closed) return;
-    closed = true;
-    sp.classList.add('out');
-    sessionStorage.setItem('uh.splash', '1');
+  setTimeout(() => sp.classList.add('out'), dur - fade);
+  setTimeout(() => {
+    sp.remove();
     document.body.style.overflow = prevOverflow;
-    setTimeout(() => sp.remove(), 650);
-  };
-
-  const timer = setTimeout(finish, dur);
-  sp.addEventListener('pointerdown', () => { clearTimeout(timer); finish(); }, { once: true });
-  sp.addEventListener('keydown', () => { clearTimeout(timer); finish(); }, { once: true });
-  addEventListener('keydown', (e) => {
-    if (e.key === 'Escape'){ clearTimeout(timer); finish(); }
-  }, { once: true });
+  }, dur);
 }
 
 /* ---------- favorites / recents ---------- */
