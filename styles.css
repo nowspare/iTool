@@ -132,7 +132,6 @@ html[data-theme="slate"][data-mode="dark"]{--bg:#0b0e12;--bg2:#11151a;--surface:
 .split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:760px){.split{grid-template-columns:1fr}}
 
-/* dropzone */
 .dz{
   border:1.5px dashed var(--line2);border-radius:var(--r);padding:26px;text-align:center;
   color:var(--muted);cursor:pointer;background:var(--bg2);font-size:14px;
@@ -140,14 +139,12 @@ html[data-theme="slate"][data-mode="dark"]{--bg:#0b0e12;--bg2:#11151a;--surface:
 .dz.over{border-color:var(--accent);color:var(--text);background:var(--hover)}
 .dz-list{font-size:13px;color:var(--muted);font-family:var(--mono);display:flex;flex-direction:column;gap:2px;margin-top:8px}
 
-/* output previews */
 .preview{max-width:100%;border:1px solid var(--line);border-radius:8px;display:block}
 .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .thumbs figure{margin:0}
 .thumbs img{width:100%;border-radius:6px;border:1px solid var(--line);display:block}
 .thumbs figcaption{font-size:11px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
 
-/* calculator pad */
 .pad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:340px}
 .pad button{padding:13px 0;border:1px solid var(--line2);border-radius:8px;background:var(--surface);cursor:pointer;font-size:15px}
 .pad button:hover{background:var(--hover)}
@@ -155,7 +152,6 @@ html[data-theme="slate"][data-mode="dark"]{--bg:#0b0e12;--bg2:#11151a;--surface:
 .pad .eq{grid-column:span 2;background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .disp{font-family:var(--mono);font-size:24px;text-align:right;padding:12px 14px;border:1px solid var(--line2);border-radius:8px;background:var(--bg2);overflow:auto;min-height:52px}
 
-/* lists / trackers */
 .list{display:flex;flex-direction:column;gap:6px}
 .item{display:flex;gap:9px;align-items:center;padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:14px}
 .item.done span{text-decoration:line-through;color:var(--muted)}
@@ -163,18 +159,15 @@ html[data-theme="slate"][data-mode="dark"]{--bg:#0b0e12;--bg2:#11151a;--surface:
 .item .x:hover{background:var(--hover);color:var(--text)}
 .big-num{font-family:var(--mono);font-size:40px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 
-/* diff */
 .diff{font-family:var(--mono);font-size:13px;border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:460px}
 .diff div{padding:1px 12px;white-space:pre-wrap;word-break:break-word}
 .diff .add{background:color-mix(in srgb,#2ea043 16%,transparent)}
 .diff .del{background:color-mix(in srgb,#f85149 16%,transparent);text-decoration:line-through;opacity:.85}
 .diff .eq{color:var(--muted)}
 
-/* palette */
 .pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
 .pal div{border:1px solid var(--line);border-radius:8px;padding:10px 8px;font-size:11px;font-family:var(--mono);text-align:center;cursor:pointer}
 
-/* theme popover */
 .theme-pop{
   position:fixed;top:58px;right:16px;z-index:60;background:var(--surface);border:1px solid var(--line2);
   border-radius:var(--r);padding:14px;width:230px;box-shadow:0 12px 32px rgba(0,0,0,.14);
@@ -189,7 +182,6 @@ html[data-theme="slate"][data-mode="dark"]{--bg:#0b0e12;--bg2:#11151a;--surface:
 .chip{flex:1;padding:6px 0;border:1px solid var(--line2);border-radius:7px;background:var(--surface);cursor:pointer;font-size:12.5px}
 .chip[aria-current="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 
-/* misc */
 .empty{color:var(--muted);padding:44px 0;text-align:center;font-size:14px}
 .err{border:1px solid #f85149;border-radius:8px;padding:12px 14px;font-size:13.5px;background:color-mix(in srgb,#f85149 10%,transparent);white-space:pre-wrap;font-family:var(--mono)}
 details.how{margin-top:22px;max-width:860px;border-top:1px solid var(--line);padding-top:14px}
@@ -198,17 +190,22 @@ details.how p{font-size:13.5px;color:var(--muted);margin:9px 0 0;max-width:70ch}
 canvas.edit{cursor:crosshair;border:1px solid var(--line);border-radius:8px;display:block;max-width:100%}
 
 /* ============================================================
-   SPLASH — animated "i" mark + iHub wordmark
-   Full sequence: ~6.6s.  No skip.  Timer only.
+   SPLASH — the "i" that draws, ripples, spins, and settles
+   Timing is set from JS. CSS provides the initial state and the
+   guaranteed fade-out if JS ever fails to run.
    ============================================================ */
 #splash{
   position:fixed; inset:0; z-index:9999;
   display:grid; place-items:center;
   background:var(--bg);
-  transition:opacity .6s cubic-bezier(0.4, 0, 0.2, 1);
+  /* JS overrides --splash-out-delay to (duration − 600ms). Fallback: 6s. */
+  animation:splash-out .6s ease-in forwards;
+  animation-delay:var(--splash-out-delay, 6s);
   will-change:opacity;
 }
-#splash.out{ opacity:0; pointer-events:none; }
+@keyframes splash-out{
+  to{ opacity:0; visibility:hidden; pointer-events:none }
+}
 
 .sp-stage{
   display:grid;
@@ -218,30 +215,25 @@ canvas.edit{cursor:crosshair;border:1px solid var(--line);border-radius:8px;disp
   padding:24px;
 }
 
-/* --- lockup container: holds the mark and wordmark on one line --- */
+/* lockup: the i-mark and the "Hub" text sit side by side */
 .sp-lockup{
-  position:relative;
   display:flex;
   align-items:center;
-  height:64px;
-  transform:translateX(0);
-  animation: sp-lockup-shift .7s cubic-bezier(.2,.8,.2,1) 2.5s forwards;
+  justify-content:center;
+  gap:0;
+  transform-origin:center center;
+  will-change:transform;
 }
-@keyframes sp-lockup-shift{ to{ transform:translateX(-52px) } }
 
-/* --- mark slot: fixed layout box, SVG can overflow during scale --- */
+/* slot keeps a stable 64×64 layout box while the SVG can overflow */
 .sp-mark-slot{
   position:relative;
   width:64px;
   height:64px;
-  animation: sp-breathe 3s ease-in-out 4.2s infinite;
-}
-@keyframes sp-breathe{
-  0%,100%{ transform:scale(1) }
-  50%{ transform:scale(1.05) }
+  flex:none;
 }
 
-/* --- the SVG mark itself --- */
+/* the SVG itself; JS animates transform on this */
 .sp-mark{
   position:absolute;
   inset:0;
@@ -249,109 +241,46 @@ canvas.edit{cursor:crosshair;border:1px solid var(--line);border-radius:8px;disp
   height:64px;
   color:var(--accent);
   overflow:visible;
-  transform:scale(2.6);
   transform-origin:center center;
-  animation: sp-mark-shrink .65s cubic-bezier(.45,0,.15,1) 1.9s forwards;
-}
-@keyframes sp-mark-shrink{
-  from{ transform:scale(2.6) }
-  to{ transform:scale(1) }
+  transform:scale(2.4);
+  will-change:transform;
 }
 
-/* --- dot: drops in with bounce --- */
-.sp-dot{
-  transform-box:fill-box;
-  transform-origin:center;
-  opacity:0;
-  animation: sp-dot-drop .62s cubic-bezier(.34,1.56,.64,1) .15s forwards;
-}
-@keyframes sp-dot-drop{
-  0%{ transform:translateY(-40px); opacity:0 }
-  30%{ opacity:1 }
-  100%{ transform:translateY(0); opacity:1 }
-}
+/* children default to their FINAL visible state (JS overrides to hide them) */
+.sp-dot   { transform-box:fill-box; transform-origin:center; will-change:transform,opacity }
+.sp-stem  { will-change:stroke-dashoffset }
+.sp-ripple{ transform-box:fill-box; transform-origin:center; opacity:0; will-change:transform,opacity }
 
-/* --- stem: draws upward --- */
-.sp-stem{
-  stroke-dasharray:1;
-  stroke-dashoffset:1;
-  animation: sp-stem-draw .9s cubic-bezier(.65,0,.35,1) .7s forwards;
-}
-@keyframes sp-stem-draw{ to{ stroke-dashoffset:0 } }
-
-/* --- ripple ring expands from the dot when it lands --- */
-.sp-ripple{
-  stroke-width:1.6;
-  opacity:0;
-  transform-box:fill-box;
-  transform-origin:center;
-  animation: sp-ripple 1s cubic-bezier(.2,.8,.2,1) .62s;
-}
-@keyframes sp-ripple{
-  0%{ r:7; opacity:.7; stroke-width:2 }
-  100%{ r:30; opacity:0; stroke-width:.5 }
-}
-
-/* --- wordmark "iHub": each letter staggers in --- */
 .sp-word{
   font-size:44px;
-  letter-spacing:-.03em;
   font-weight:600;
-  color:var(--text);
+  letter-spacing:-.03em;
   line-height:1;
-  margin-left:0;
+  color:var(--text);
   white-space:nowrap;
-  opacity:1;
+  margin-left:6px;
 }
 .sp-char{
   display:inline-block;
-  opacity:0;
-  transform:translateY(14px);
-  animation: sp-char-in .42s cubic-bezier(.2,.8,.2,1) forwards;
-}
-.sp-char:nth-child(1){ animation-delay:2.50s; font-weight:400 }
-.sp-char:nth-child(2){ animation-delay:2.62s; font-weight:650 }
-.sp-char:nth-child(3){ animation-delay:2.74s; font-weight:650 }
-.sp-char:nth-child(4){ animation-delay:2.86s; font-weight:650 }
-@keyframes sp-char-in{
-  to{ opacity:1; transform:none }
+  will-change:transform,opacity;
+  /* staggered rotation makes it feel hand-set */
 }
 
-/* --- underline draws beneath the lockup --- */
 .sp-underline{
-  width:200px;
+  width:220px;
   height:2px;
   background:var(--accent);
   border-radius:1px;
-  transform:scaleX(0);
   transform-origin:left center;
-  animation: sp-underline .55s cubic-bezier(.65,0,.35,1) 3.10s forwards;
-  opacity:.8;
+  transform:scaleX(1); /* final state; JS overrides to 0 then animates */
+  will-change:transform;
+  opacity:.85;
 }
-@keyframes sp-underline{ to{ transform:scaleX(1) } }
 
-/* --- tagline fades in --- */
 .sp-tag{
   font-size:13px;
   letter-spacing:.01em;
   color:var(--muted);
-  opacity:0;
-  animation: sp-tag .5s ease 3.5s forwards;
-}
-@keyframes sp-tag{ to{ opacity:1 } }
-
-/* --- reduced motion: show assembled state, keep the timer --- */
-@media (prefers-reduced-motion: reduce){
-  #splash{ transition:none }
-  .sp-lockup{ animation:none; transform:translateX(-52px) }
-  .sp-mark{ animation:none; transform:scale(1) }
-  .sp-dot{ animation:none; opacity:1; transform:none }
-  .sp-stem{ animation:none; stroke-dashoffset:0 }
-  .sp-ripple{ display:none }
-  .sp-char{ animation:none; opacity:1; transform:none }
-  .sp-underline{ animation:none; transform:scaleX(1) }
-  .sp-tag{ animation:none; opacity:1 }
-  .sp-mark-slot{ animation:none }
 }
 
 @media(max-width:900px){
@@ -365,8 +294,8 @@ canvas.edit{cursor:crosshair;border:1px solid var(--line);border-radius:8px;disp
   .brand .brand-name{display:none}
   .hero h1{font-size:24px}
   .grid{grid-template-columns:1fr}
-  .sp-word{font-size:34px}
-  .sp-lockup{height:52px}
-  .sp-mark-slot,.sp-mark{width:52px;height:52px}
-  .sp-underline{width:160px}
+  .sp-word{font-size:36px}
+  .sp-mark-slot{width:56px;height:56px}
+  .sp-mark{width:56px;height:56px}
+  .sp-underline{width:180px}
 }
