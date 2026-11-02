@@ -79,32 +79,44 @@ async function copy(text){
 }
 
 /* ---------- UI kit ---------- */
-const ui = {
-  ta(ph = '', val = ''){ return el('textarea', { class: 'ta', placeholder: ph, spellcheck: 'false', value: val }); },
-  in(ph = '', val = '', type = 'text'){ return el('input', { class: 'in', placeholder: ph, type, value: val }); },
-  sel(opts, val){ return el('select', { class: 'sel' }, opts.map(o => el('option', { value: o.v ?? o, selected: (o.v ?? o) === val }, o.t ?? o))); },
-  btn(label, onclick, primary){ return el('button', { class: 'btn' + (primary ? ' btn-p' : ''), onclick, type: 'button' }, label); },
-  row(...k){ return el('div', { class: 'row' }, ...k); },
-  col(...k){ return el('div', { class: 'col' }, ...k); },
-  split(a, b){ return el('div', { class: 'split' }, a, b); },
-  label(t, c){ return el('label', { class: 'field' }, el('span', { class: 'fl' }, t), c); },
-  out(){ return el('pre', { class: 'out' }, ''); },
-  hint(t){ return el('p', { class: 'hint' }, t); },
-  dz(label, onFiles){
-    const input = el('input', { type: 'file', multiple: true, hidden: true });
-    const zone = el('div', { class: 'dz', tabindex: '0' }, label);
-    const list = el('div', { class: 'dz-list' });
-    const fire = files => { if (files?.length) onFiles([...files]); };
-    zone.onclick = () => input.click();
-    zone.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') input.click(); };
-    input.onchange = () => fire(input.files);
-    zone.ondragover = e => { e.preventDefault(); zone.classList.add('over'); };
-    zone.ondragleave = () => zone.classList.remove('over');
-    zone.ondrop = e => { e.preventDefault(); zone.classList.remove('over'); fire(e.dataTransfer.files); };
-    zone.append(input);
-    return { zone, list, setNames: names => { list.textContent = ''; names.forEach(n => list.append(el('div', { text: n }))); } };
-  }
-};
+ring({ size = 240, stroke = 12 } = {}){
+    const NS = 'http://www.w3.org/2000/svg';
+    const c = size / 2;
+    const r = (size - stroke) / 2;
+    const circ = 2 * Math.PI * r;
+    const mk = (tag, attrs) => {
+      const n = document.createElementNS(NS, tag);
+      for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+      return n;
+    };
+    const svg = mk('svg', { viewBox: `0 0 ${size} ${size}`, width: size, height: size, role: 'img' });
+    svg.style.display = 'block';
+    const track = mk('circle', { cx: c, cy: c, r, fill: 'none', stroke: 'var(--bg2)', 'stroke-width': stroke });
+    const prog = mk('circle', {
+      cx: c, cy: c, r, fill: 'none', stroke: 'var(--accent)', 'stroke-width': stroke,
+      'stroke-linecap': 'round', 'stroke-dasharray': circ, 'stroke-dashoffset': circ,
+      transform: `rotate(-90 ${c} ${c})`
+    });
+    const main = mk('text', {
+      x: c, y: c - size * 0.012, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+      fill: 'var(--text)', 'font-family': 'var(--mono)', 'font-variant-numeric': 'tabular-nums',
+      'font-size': size * 0.17, 'font-weight': '600'
+    });
+    const sub = mk('text', {
+      x: c, y: c + size * 0.145, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+      fill: 'var(--muted)', 'font-family': 'var(--mono)', 'font-size': size * 0.072
+    });
+    svg.append(track, prog, main, sub);
+    return {
+      node: svg,
+      set(frac, m = '', s = ''){
+        const f = Math.max(0, Math.min(1, frac || 0));
+        prog.setAttribute('stroke-dashoffset', String(circ * (1 - f)));
+        main.textContent = m;
+        sub.textContent = s;
+      }
+    };
+  },
 
 /* ---------- registry ---------- */
 const TOOLS = [];
