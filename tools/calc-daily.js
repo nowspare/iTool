@@ -445,61 +445,171 @@ tool({
 
 tool({
   id: 'cooking-timer', cat: 'daily', name: 'Cooking Timer',
-  desc: 'Countdown with alarm tone and browser notification.',
-  keywords: 'cooking timer countdown alarm kitchen',
+  desc: '360° countdown ring with presets, alarm tone, and notification.',
+  keywords: 'cooking timer countdown alarm kitchen ring dial',
   render(w){
-    const m = $.in('minutes', '10', 'number'), s = $.in('seconds', '0', 'number');
-    const disp = el('div', { class: 'big-num', text: '10:00' });
-    const start = $.btn('Start', () => {
-      clearInterval(id);
-      let left = (+m.value || 0) * 60 + (+s.value || 0);
-      if (left <= 0) return;
-      const end = Date.now() + left * 1000;
-      id = setInterval(() => {
-        left = Math.max(0, Math.round((end - Date.now()) / 1000));
-        disp.textContent = `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`;
-        if (left === 0){ clearInterval(id); buzz(); disp.textContent = 'DONE'; }
-      }, 200);
-    }, true);
-    let id = 0;
+    const ring = $.ring({ size: 248, stroke: 12 });
+    const phase = $.hint('Ready');
+    const m = $.in('minutes', '10', 'number');
+    const s = $.in('seconds', '0', 'number');
+
+    let total = 0, remaining = 0, endAt = 0, raf = 0, running = false;
+
+    const paint = () => {
+      const ms = Math.max(0, remaining);
+      const mm = Math.floor(ms / 60000);
+      const ss = Math.floor(ms % 60000 / 1000);
+      const cs = Math.floor(ms % 1000 / 10);
+      ring.set(total > 0 ? ms / total : 0,
+        `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`,
+        `.${String(cs).padStart(2, '0')}`);
+    };
+
     const buzz = () => {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        [0, 0.4, 0.8].forEach(t => {
+        [0, 0.45, 0.9].forEach(t => {
           const o = ctx.createOscillator(), g = ctx.createGain();
-          o.frequency.value = 880; o.connect(g); g.connect(ctx.destination);
-          g.gain.setValueAtTime(0.18, ctx.currentTime + t);
-          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
-          o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.3);
+          o.type = 'sine'; o.frequency.value = 880;
+          o.connect(g); g.connect(ctx.destination);
+          g.gain.setValueAtTime(0.0001, ctx.currentTime + t);
+          g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.38);
+          o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.4);
         });
       } catch {}
-      if (Notification.permission === 'granted') new Notification('Timer done');
+      if ('Notification' in window && Notification.permission === 'granted') new Notification('Timer done');
     };
+
+    const finish = () => {
+      running = false;
+      cancelAnimationFrame(raf);
+      remaining = 0;
+      paint();
+      phase.textContent = 'DONE';
+      buzz();
+    };
+
+    const loop = () => {
+      if (!running) return;
+      remaining = endAt - performance.now();
+      if (remaining <= 0) return finish();
+      paint();
+      raf = requestAnimationFrame(loop);
+    };
+
+    const start = () => {
+      if (running) return;
+      if (remaining <= 0){
+        total = ((+m.value || 0) * 60 + (+s.value || 0)) * 1000;
+        remaining = total;
+      }
+      if (remaining <= 0){ phase.textContent = 'Set a duration first.'; return; }
+      endAt = performance.now() + remaining;
+      running = true;
+      phase.textContent = 'Running';
+      paint();
+      loop();
+    };
+
+    const pause = () => {
+      if (!running) return;
+      remaining = Math.max(0, endAt - performance.now());
+      running = false;
+      cancelAnimationFrame(raf);
+      phase.textContent = 'Paused';
+      paint();
+    };
+
+    const reset = () => {
+      running = false;
+      cancelAnimationFrame(raf);
+      total = remaining = 0;
+      phase.textContent = 'Ready';
+      paint();
+    };
+
+    const preset = min => {
+      running = false;
+      cancelAnimationFrame(raf);
+      m.value = String(min); s.value = '0';
+      total = remaining = min * 60000;
+      start();
+    };
+
     if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
-    w.addEventListener('uh:unmount', () => clearInterval(id));
-    w.append(disp, $.row($.label('Minutes', m), $.label('Seconds', s)), $.row(start, $.btn('Stop', () => clearInterval(id))));
+
+    w.addEventListener('uh:unmount', () => { cancelAnimationFrame(raf); running = false; });
+    paint();
+    w.append(
+      el('div', { style: { display: 'grid', placeItems: 'center' } }, ring.node),
+      phase,
+      $.row(
+        el('button', { class: 'chip', type: 'button', onclick: () => preset(1) }, '1 min'),
+        el('button', { class: 'chip', type: 'button', onclick: () => preset(3) }, '3 min'),
+        el('button', { class: 'chip', type: 'button', onclick: () => preset(5) }, '5 min'),
+        el('button', { class: 'chip', type: 'button', onclick: () => preset(10) }, '10 min'),
+        el('button', { class: 'chip', type: 'button', onclick: () => preset(15) }, '15 min'),
+        el('button', { class: 'chip', type: 'button', onclick: () => preset(25) }, '25 min'),
+        el('button', { class: 'chip', type: 'button', onclick: () => preset(45) }, '45 min')
+      ),
+      $.row($.label('Minutes', m), $.label('Seconds', s)),
+      $.row($.btn('Start', start, true), $.btn('Pause', pause), $.btn('Reset', reset))
+    );
   }
 });
 
 tool({
   id: 'world-clock', cat: 'daily', name: 'World Clock',
-  desc: 'Live times across any number of time zones.',
-  keywords: 'world clock timezone time zones now',
+  desc: 'Live times across any number of time zones, 12 or 24 hour.',
+  keywords: 'world clock timezone time zones now 12 hour 24 hour am pm',
   render(w){
-    const zones = ['UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Europe/Berlin', 'Asia/Dubai', 'Asia/Karachi', 'Asia/Kolkata', 'Asia/Tokyo', 'Australia/Sydney'];
+    const ZONES = ['UTC', 'America/Los_Angeles', 'America/Denver', 'America/Chicago', 'America/New_York',
+      'America/Sao_Paulo', 'Europe/London', 'Europe/Lisbon', 'Europe/Berlin', 'Europe/Paris',
+      'Europe/Moscow', 'Africa/Cairo', 'Asia/Dubai', 'Asia/Karachi', 'Asia/Kolkata',
+      'Asia/Bangkok', 'Asia/Shanghai', 'Asia/Singapore', 'Asia/Tokyo', 'Australia/Sydney'];
+    const home = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    let twelve = store.get('wc.12', true);
+    const chips = el('div', { class: 'row' });
     const rows = el('div', { class: 'list' });
+
+    const fmtTime = z => new Intl.DateTimeFormat(undefined, {
+      timeZone: z, hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: twelve, hourCycle: twelve ? 'h12' : 'h23'
+    }).format(new Date());
+    const fmtDate = z => new Intl.DateTimeFormat(undefined, {
+      timeZone: z, weekday: 'short', day: '2-digit', month: 'short'
+    }).format(new Date());
+
     const tick = () => {
-      rows.replaceChildren(...zones.map(z => {
-        const t = new Intl.DateTimeFormat(undefined, { timeZone: z, hour: '2-digit', minute: '2-digit', second: '2-digit', weekday: 'short', day: '2-digit', month: 'short' }).format(new Date());
-        return el('div', { class: 'item' }, el('span', { text: z }), el('span', { class: 'hint', style: { marginLeft: 'auto', fontFamily: 'var(--mono)' }, text: t }));
+      rows.replaceChildren(...ZONES.map(z => {
+        const isHome = z === home;
+        return el('div', { class: 'item' },
+          el('span', { text: z.replace(/_/g, ' ') + (isHome ? ' · your zone' : ''),
+            style: { color: isHome ? 'var(--text)' : 'var(--muted)', fontWeight: isHome ? '600' : '400' } }),
+          el('span', { class: 'hint', style: { marginLeft: 'auto' }, text: fmtDate(z) }),
+          el('span', { style: { fontFamily: 'var(--mono)', fontVariantNumeric: 'tabular-nums',
+            width: twelve ? '112px' : '88px', textAlign: 'right' }, text: fmtTime(z) })
+        );
       }));
     };
-    tick(); const id = setInterval(tick, 1000);
+
+    const paintChips = () => {
+      chips.replaceChildren(
+        el('button', { class: 'chip', type: 'button', 'aria-current': String(twelve),
+          onclick: () => { twelve = true; store.set('wc.12', true); paintChips(); tick(); } }, '12-hour'),
+        el('button', { class: 'chip', type: 'button', 'aria-current': String(!twelve),
+          onclick: () => { twelve = false; store.set('wc.12', false); paintChips(); tick(); } }, '24-hour')
+      );
+    };
+
+    paintChips(); tick();
+    const id = setInterval(tick, 1000);
     w.addEventListener('uh:unmount', () => clearInterval(id));
-    w.append(rows);
+    w.append($.row(el('span', { class: 'fl', text: 'Format' }), chips), rows);
   }
 });
-
 tool({
   id: 'date-finder', cat: 'daily', name: 'Calendar Date Finder',
   desc: 'Day of week for any date, plus “N days from today”.',
