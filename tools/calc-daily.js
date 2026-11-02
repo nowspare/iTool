@@ -448,7 +448,7 @@ tool({
 
 tool({
   id: 'cooking-timer', cat: 'daily', name: 'Cooking Timer',
-  desc: '360° countdown ring with presets, alarm tone, and notification.',
+  desc: 'countdown ring with presets, alarm tone, and notification.',
   keywords: 'cooking timer countdown alarm kitchen ring dial',
   render(w){
     const ring = $.ring({ size: 260, stroke: 12 });
