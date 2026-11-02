@@ -196,25 +196,155 @@ function applyTheme(){
   store.set('theme', S.theme); store.set('mode', S.mode);
 }
 
-/* ---------- splash: timer only, no skip, no dismissal ---------- */
+/* ============================================================
+   SPLASH — driven by Web Animations API.
+   Guaranteed to fire. Handles reduced-motion gracefully.
+   ============================================================ */
 function runSplash(){
   const sp = document.getElementById('splash');
   if (!sp) return;
-  if (/[?&]nosplash=1/.test(location.search)){ sp.remove(); return; }
 
-  /* duration clamped to 5–10s; default from the data attribute is 6600ms */
-  const raw = +(sp.dataset.duration) || 6600;
-  const dur = Math.max(5000, Math.min(10000, raw));
-  const fade = 600;                        /* fade-out length at the end */
+  /* ?nosplash=1 → remove instantly */
+  if (/[?&]nosplash=1/.test(location.search)){
+    sp.remove();
+    return;
+  }
 
+  /* clamp duration to your 5–10s window */
+  const dur = Math.max(5000, Math.min(10000, +(sp.dataset.duration) || 6600));
+  const fade = 600;
+
+  /* tell CSS when to start its fallback fade-out */
+  sp.style.setProperty('--splash-out-delay', (dur - fade) + 'ms');
+
+  /* lock scroll while it plays */
   const prevOverflow = document.body.style.overflow;
   document.body.style.overflow = 'hidden';
 
-  setTimeout(() => sp.classList.add('out'), dur - fade);
+  /* remove when done (also ensures a clean DOM even if CSS fade fails) */
   setTimeout(() => {
     sp.remove();
     document.body.style.overflow = prevOverflow;
   }, dur);
+
+  /* reduced-motion: skip the elaborate sequence */
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const mark = sp.querySelector('.sp-mark');
+  const dot = sp.querySelector('.sp-dot');
+  const stem = sp.querySelector('.sp-stem');
+  const r1 = sp.querySelector('.sp-ripple.r1');
+  const r2 = sp.querySelector('.sp-ripple.r2');
+  const r3 = sp.querySelector('.sp-ripple.r3');
+  const lockup = sp.querySelector('.sp-lockup');
+  const chars = [...sp.querySelectorAll('.sp-char')];
+  const underline = sp.querySelector('.sp-underline');
+  const tag = sp.querySelector('.sp-tag');
+  const word = sp.querySelector('.sp-word');
+
+  if (reduced){
+    /* simple fade-in / hold / fade-out, no motion */
+    mark.style.transform = 'scale(1)';
+    stem.style.strokeDasharray = 'none';
+    stem.style.strokeDashoffset = '0';
+    return;
+  }
+
+  /* ---- FORCE INITIAL HIDDEN STATES (in case CSS defaults leak) ---- */
+  mark.style.transform = 'scale(2.4) rotate(-45deg)';
+  dot.style.opacity = '0';
+  stem.style.strokeDasharray = '30';
+  stem.style.strokeDashoffset = '30';
+  r1.style.opacity = '0';
+  r2.style.opacity = '0';
+  r3.style.opacity = '0';
+  chars.forEach(c => { c.style.opacity = '0'; c.style.transform = 'translateY(24px) rotate(8deg)'; });
+  underline.style.transform = 'scaleX(0)';
+  tag.style.opacity = '0';
+
+  const anim = (node, kf, opt) => {
+    try { return node.animate(kf, { fill: 'forwards', ...opt }); }
+    catch (e) { console.warn('animate fail', e); return null; }
+  };
+
+  /* 1) dot drops in with bounce (0.10 → 0.85s) */
+  anim(dot, [
+    { transform: 'translateY(-80px) scale(0.3)', opacity: 0, offset: 0 },
+    { transform: 'translateY(6px) scale(1.15)', opacity: 1, offset: 0.55 },
+    { transform: 'translateY(-3px) scale(0.95)', offset: 0.78 },
+    { transform: 'translateY(0) scale(1)', opacity: 1, offset: 1 }
+  ], { duration: 800, delay: 100, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
+
+  /* 2) two ripples expand from the dot (0.72 → 1.95s) */
+  anim(r1, [
+    { transform: 'scale(1)', opacity: 0.85 },
+    { transform: 'scale(4.2)', opacity: 0 }
+  ], { duration: 950, delay: 720, easing: 'cubic-bezier(0.1, 0.8, 0.3, 1)' });
+
+  anim(r2, [
+    { transform: 'scale(1)', opacity: 0.55 },
+    { transform: 'scale(6)', opacity: 0 }
+  ], { duration: 1200, delay: 880, easing: 'cubic-bezier(0.1, 0.8, 0.3, 1)' });
+
+  /* 3) stem draws upward (0.85 → 1.7s) */
+  anim(stem, [
+    { strokeDashoffset: 30 },
+    { strokeDashoffset: 0 }
+  ], { duration: 850, delay: 850, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' });
+
+  /* 4) mark SPINS 360° + shrinks to true size (1.7 → 2.6s) */
+  anim(mark, [
+    { transform: 'scale(2.4) rotate(-45deg)', opacity: 1 },
+    { transform: 'scale(0.94) rotate(200deg)', offset: 0.7 },
+    { transform: 'scale(1) rotate(315deg)' }
+  ], { duration: 950, delay: 1700, easing: 'cubic-bezier(0.45, 0, 0.15, 1)' });
+
+  /* 5) third ripple fires as the mark settles (2.0 → 2.9s) */
+  anim(r3, [
+    { transform: 'scale(0.8)', opacity: 0.55 },
+    { transform: 'scale(3.2)', opacity: 0 }
+  ], { duration: 900, delay: 2050, easing: 'cubic-bezier(0.1, 0.8, 0.3, 1)' });
+
+  /* 6) wordmark letters cascade in (2.45 → 3.1s) */
+  chars.forEach((c, i) => {
+    anim(c, [
+      { transform: 'translateY(24px) rotate(8deg)', opacity: 0 },
+      { transform: 'translateY(0) rotate(0deg)', opacity: 1 }
+    ], { duration: 520, delay: 2450 + i * 130, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
+  });
+
+  /* 7) lockup slides left by half wordmark width so group stays centered */
+  requestAnimationFrame(() => {
+    const wordW = word.offsetWidth || 100;
+    anim(lockup, [
+      { transform: 'translateX(0)' },
+      { transform: `translateX(${-(wordW / 2)}px)` }
+    ], { duration: 700, delay: 2450, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+  });
+
+  /* 8) underline sweeps (3.15 → 3.75s) */
+  anim(underline, [
+    { transform: 'scaleX(0)' },
+    { transform: 'scaleX(1)' }
+  ], { duration: 600, delay: 3150, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' });
+
+  /* 9) tagline fades (3.65 → 4.15s) */
+  anim(tag, [
+    { opacity: 0, transform: 'translateY(6px)' },
+    { opacity: 1, transform: 'translateY(0)' }
+  ], { duration: 500, delay: 3650, easing: 'ease-out' });
+
+  /* 10) breathing pulse during the hold (4.4s) */
+  setTimeout(() => {
+    if (!mark.isConnected) return;
+    anim(mark, [
+      { transform: 'scale(1)' },
+      { transform: 'scale(1.06)' },
+      { transform: 'scale(1)' }
+    ], { duration: 1600, iterations: 2, easing: 'ease-in-out' });
+  }, 4400);
+
+  /* 11) final fade via CSS animation, then remove */
+  /* CSS is already set to fade at `dur − fade`. Nothing more to do. */
 }
 
 /* ---------- favorites / recents ---------- */
@@ -380,7 +510,6 @@ function buildThemePop(){
 }
 
 function boot(){
-  runSplash();
   applyTheme();
   buildNav();
   buildThemePop();
@@ -413,6 +542,9 @@ function boot(){
 
   window.addEventListener('hashchange', route);
   route();
+
+  /* splash runs last so the rest of the page is already rendered underneath */
+  runSplash();
 }
 
 window.UH = { el, tool, ui, lib, download, readFile, bytes, copy, store, CATS, TOOLS, S };
