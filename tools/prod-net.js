@@ -28,10 +28,7 @@ tool({
       }));
       list.append(el('p', { class: 'hint', text: `${items.filter(t => t.done).length} of ${items.length} done` }));
     };
-    const add = () => {
-      if (!input.value.trim()) return;
-      items.push({ text: input.value.trim(), done: false }); input.value = ''; save(); paint();
-    };
+    const add = () => { if (!input.value.trim()) return; items.push({ text: input.value.trim(), done: false }); input.value = ''; save(); paint(); };
     input.onkeydown = e => { if (e.key === 'Enter') add(); };
     const yKey = 'todo:' + new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const carried = store.get(yKey, []).filter(t => !t.done);
@@ -59,7 +56,7 @@ tool({
     const save = () => store.set(KEY, notes);
     const paint = () => {
       list.replaceChildren(...notes.map(n => {
-        const row = el('div', { class: 'item' + (n.id === active ? '' : '') },
+        const row = el('div', { class: 'item' },
           el('span', { text: n.title || 'Untitled', style: { fontWeight: n.id === active ? '600' : '400' } }),
           el('button', { class: 'x', type: 'button', text: '×' }));
         row.onclick = e => { if (e.target.classList.contains('x')) return; active = n.id; load(); paint(); };
@@ -112,13 +109,23 @@ tool({
 
 tool({
   id: 'pomodoro', cat: 'prod', name: 'Pomodoro Timer',
-  desc: '25/5 cycle with adjustable lengths, long break after four rounds.',
-  keywords: 'pomodoro focus timer work break',
+  desc: '360° ring, 25/5 default cycle, adjustable lengths, long break after four rounds.',
+  keywords: 'pomodoro focus timer work break ring',
   render(w){
-    const work = $.in('work min', '25', 'number'), brk = $.in('break min', '5', 'number');
-    const disp = el('div', { class: 'big-num', text: '25:00' });
+    const ring = $.ring({ size: 260, stroke: 12 });
     const phase = $.hint('Ready');
-    let id = 0, mode = 'work', round = 0;
+    const work = $.in('work min', '25', 'number'), brk = $.in('break min', '5', 'number');
+
+    let id = 0, mode = 'work', round = 0, phaseTotal = 0, endAt = 0, remaining = 0;
+
+    const paint = () => {
+      const mm = Math.floor(Math.max(0, remaining) / 60000);
+      const ss = Math.floor(Math.max(0, remaining) % 60000 / 1000);
+      ring.set(phaseTotal > 0 ? Math.max(0, remaining) / phaseTotal : 0,
+        `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`,
+        mode === 'work' ? `round ${round + 1}` : 'break');
+    };
+
     const beep = () => {
       try {
         const c = new (window.AudioContext || window.webkitAudioContext)();
@@ -129,24 +136,57 @@ tool({
         o.start(); o.stop(c.currentTime + 0.6);
       } catch {}
     };
+
+    const next = () => {
+      if (mode === 'work'){
+        round++;
+        phase.textContent = `Round ${round} complete — break`;
+        mode = 'break';
+      } else {
+        phase.textContent = 'Back to work';
+        mode = 'work';
+      }
+      phaseTotal = (mode === 'work' ? (+work.value || 25) : (+brk.value || 5)) * 60000;
+      remaining = phaseTotal;
+      endAt = performance.now() + remaining;
+      paint();
+    };
+
     const tick = () => {
-      const mins = mode === 'work' ? (+work.value || 25) : (+brk.value || 5);
-      let left = mins * 60;
-      const end = Date.now() + left * 1000;
+      clearInterval(id);
+      if (!phaseTotal) return;
+      endAt = performance.now() + remaining;
+      phase.textContent = mode === 'work' ? 'Focusing' : 'Break';
       id = setInterval(() => {
-        left = Math.max(0, Math.round((end - Date.now()) / 1000));
-        disp.textContent = `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`;
-        if (left === 0){
-          clearInterval(id); beep();
-          if (mode === 'work'){ round++; mode = 'break'; phase.textContent = `Round ${round} complete — break`; }
-          else { mode = 'work'; phase.textContent = 'Back to work'; }
-          tick();
-        }
+        remaining = Math.max(0, endAt - performance.now());
+        paint();
+        if (remaining <= 0){ clearInterval(id); beep(); next(); tick(); }
       }, 200);
     };
-    const start = $.btn('Start', () => { clearInterval(id); phase.textContent = mode === 'work' ? 'Focusing' : 'Break'; tick(); }, true);
+
+    const start = () => {
+      if (!phaseTotal){
+        phaseTotal = (+work.value || 25) * 60000;
+        remaining = phaseTotal;
+      }
+      tick();
+    };
+
     w.addEventListener('uh:unmount', () => clearInterval(id));
-    w.append(disp, phase, $.row($.label('Work', work), $.label('Break', brk)), $.row(start, $.btn('Pause', () => clearInterval(id)), $.btn('Reset', () => { clearInterval(id); mode = 'work'; round = 0; disp.textContent = `${String(work.value).padStart(2, '0')}:00`; phase.textContent = 'Ready'; })));
+
+    paint();
+    w.append(
+      el('div', { style: { display: 'grid', placeItems: 'center' } }, ring.node),
+      phase,
+      $.row($.label('Work', work), $.label('Break', brk)),
+      $.row($.btn('Start', start, true),
+        $.btn('Pause', () => { clearInterval(id); phase.textContent = 'Paused'; }),
+        $.btn('Reset', () => {
+          clearInterval(id); id = 0;
+          mode = 'work'; round = 0; phaseTotal = 0; remaining = 0;
+          phase.textContent = 'Ready'; paint();
+        }))
+    );
   }
 });
 
@@ -163,7 +203,7 @@ tool({
     for (let i = 0; i < 60; i++){
       const a = (i * 6) * Math.PI / 180;
       const major = i % 5 === 0;
-      const outer = c - 14;
+      const outer = c - 16;
       const inner = outer - (major ? 9 : 4);
       const line = document.createElementNS(NS, 'line');
       line.setAttribute('x1', String(c + Math.sin(a) * inner));
@@ -180,7 +220,6 @@ tool({
     let startAt = 0, elapsed = 0, raf = 0, running = false;
 
     const now = () => elapsed + (running ? performance.now() - startAt : 0);
-
     const fmt = ms => {
       const mm = Math.floor(ms / 60000);
       const ss = Math.floor(ms % 60000 / 1000);
@@ -250,25 +289,50 @@ tool({
 
 tool({
   id: 'countdown', cat: 'prod', name: 'Countdown Timer',
-  desc: 'Count down to a target date and time.',
-  keywords: 'countdown days until event timer',
+  desc: '360° ring counting down to a target date and time.',
+  keywords: 'countdown days until event timer ring',
   render(w){
+    const ring = $.ring({ size: 260, stroke: 12 });
     const dt = el('input', { class: 'in', type: 'datetime-local' });
-    const out = el('div', { class: 'big-num', text: '—' });
-    const sub = $.hint('');
+    const sub = $.hint('time remaining');
     const d = new Date(Date.now() + 86400000 * 7);
     dt.value = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+    let total = 0;
+    const resetTotal = () => {
+      const target = new Date(dt.value).getTime();
+      if (isNaN(target)) return;
+      total = Math.max(1, target - Date.now());
+    };
+
     const tick = () => {
       const target = new Date(dt.value).getTime();
+      if (isNaN(target)) { ring.set(0, '—', ''); return; }
       let diff = target - Date.now();
-      const past = diff < 0; diff = Math.abs(diff);
-      const dd = Math.floor(diff / 86400000), hh = Math.floor(diff % 86400000 / 3600000), mm = Math.floor(diff % 3600000 / 60000), ss = Math.floor(diff % 60000 / 1000);
-      out.textContent = `${past ? '+' : ''}${dd}d ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+      const past = diff < 0;
+      diff = Math.abs(diff);
+      const dd = Math.floor(diff / 86400000);
+      const hh = Math.floor(diff % 86400000 / 3600000);
+      const mm = Math.floor(diff % 3600000 / 60000);
+      const ss = Math.floor(diff % 60000 / 1000);
+      const frac = past ? 0 : Math.min(1, diff / total);
+      ring.set(frac,
+        `${String(dd).padStart(2, '0')}:${String(hh).padStart(2, '0')}`,
+        `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`);
       sub.textContent = past ? 'time since target' : 'time remaining';
     };
-    tick(); const id = setInterval(tick, 1000);
+
+    resetTotal();
+    tick();
+    const id = setInterval(tick, 1000);
+    dt.onchange = () => { resetTotal(); tick(); };
     w.addEventListener('uh:unmount', () => clearInterval(id));
-    w.append($.label('Target', dt), out, sub);
+
+    w.append(
+      el('div', { style: { display: 'grid', placeItems: 'center' } }, ring.node),
+      $.label('Target', dt),
+      sub
+    );
   }
 });
 
@@ -361,7 +425,7 @@ tool({
           if (h.days.includes(d.toISOString().slice(0, 10))) streak++;
           else if (i > 0) break;
         }
-        const grid = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(30, 1fr)', gap: '2px', marginTop: '6px' } },
+        const grid = el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(30, 1fr)', gap: '2px', marginTop: '6px', width: '100%' } },
           ...Array.from({ length: 30 }, (_, i) => {
             const d = new Date(); d.setDate(d.getDate() - (29 - i));
             const k = d.toISOString().slice(0, 10);
@@ -370,7 +434,7 @@ tool({
         const row = el('div', { class: 'item', style: { flexWrap: 'wrap' } },
           el('input', { type: 'checkbox', checked: done }),
           el('span', { text: h.name }),
-          el('span', { class: 'hint', style: { marginLeft: 'auto' }, text: `${streak}d streak · ${h.days.length} total` }),
+          el('span', { class: 'hint', style: { marginLeft: 'auto' }, text: `${streak}d · ${h.days.length} total` }),
           el('button', { class: 'x', type: 'button', text: '×' }), grid);
         row.querySelector('input').onchange = e => {
           if (e.target.checked){ if (!h.days.includes(todayKey)) h.days.push(todayKey); }
@@ -440,9 +504,7 @@ tool({
       if (hi < lo) { out.textContent = 'Max must be ≥ min.'; return; }
       const range = hi - lo + 1;
       if (uniq.checked && n > range) { out.textContent = `Cannot draw ${n} unique values from ${range}.`; return; }
-      const res = [];
-      const used = new Set();
-      const buf = new Uint32Array(1);
+      const res = []; const used = new Set(); const buf = new Uint32Array(1);
       while (res.length < n){
         crypto.getRandomValues(buf);
         const v = lo + (buf[0] % range);
@@ -612,12 +674,10 @@ tool({
       ['Language', navigator.language],
       ['Languages', (navigator.languages || []).join(', ')],
       ['Cores', String(navigator.hardwareConcurrency || '—')],
-      ['Memory', navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '—'],
       ['Screen', `${screen.width}×${screen.height} @${devicePixelRatio}x`],
       ['Viewport', `${innerWidth}×${innerHeight}`],
       ['Touch', String(navigator.maxTouchPoints > 0)],
-      ['Cookies', String(navigator.cookieEnabled)],
-      ['Connection', navigator.connection ? `${navigator.connection.effectiveType} / ${navigator.connection.downlink} Mbps` : '—']
+      ['Cookies', String(navigator.cookieEnabled)]
     ];
     w.append(el('div', { class: 'list' }, ...rows.map(([k, v]) =>
       el('div', { class: 'item' }, el('span', { class: 'fl', style: { width: '110px', flex: 'none' }, text: k }), el('span', { text: v, style: { wordBreak: 'break-all' } })))),
@@ -644,7 +704,7 @@ tool({
   id: 'speed-test', cat: 'net', name: 'Internet Speed Test', needsApi: true,
   desc: 'Download throughput measured against Cloudflare’s speed endpoint.',
   keywords: 'speed test bandwidth download mbps internet',
-  how: 'Pulls sized payloads from speed.cloudflare.com/__down and measures wall-clock time. Upload uses __up with a POST body. Only throughput is measured, not latency under load.',
+  how: 'Pulls sized payloads from speed.cloudflare.com/__down and measures wall-clock time.',
   render(w){
     const out = $.out();
     const bar = el('div', { style: { height: '6px', borderRadius: '3px', background: 'var(--bg2)', overflow: 'hidden' } },
@@ -662,7 +722,7 @@ tool({
         bar.firstChild.style.width = `${((i + 1) / sizes.length) * 100}%`;
       }
       const mbps = (totalBytes * 8) / (totalMs / 1000) / 1e6;
-      out.textContent = `download  ${mbps.toFixed(2)} Mbps\n          ${(mbps / 8).toFixed(2)} MB/s\nsamples   ${sizes.map(s => (s / 1e6) + 'MB').join(', ')}\ntime      ${(totalMs / 1000).toFixed(2)} s\n\nUpload testing needs a POST endpoint; add one if your host allows it.`;
+      out.textContent = `download  ${mbps.toFixed(2)} Mbps\n          ${(mbps / 8).toFixed(2)} MB/s\nsamples   ${sizes.map(s => (s / 1e6) + 'MB').join(', ')}\ntime      ${(totalMs / 1000).toFixed(2)} s`;
     };
     w.append($.btn('Run download test', run, true), bar, out);
   }
@@ -672,7 +732,6 @@ tool({
   id: 'dns-lookup', cat: 'net', name: 'DNS Lookup', needsApi: true,
   desc: 'A / AAAA / MX / TXT / CNAME / NS records via Google Public DNS.',
   keywords: 'dns lookup records mx txt a ns',
-  how: 'Queries dns.google/resolve, which speaks JSON over HTTPS and allows cross-origin reads. No key required.',
   render(w){
     const name = $.in('domain', 'example.com');
     const type = $.sel(['A', 'AAAA', 'MX', 'TXT', 'CNAME', 'NS', 'SOA', 'CAA'], 'A');
@@ -695,7 +754,6 @@ tool({
   id: 'http-headers', cat: 'net', name: 'HTTP Header Viewer', needsApi: true,
   desc: 'Fetch and list response headers through a small proxy endpoint.',
   keywords: 'http headers response inspect curl',
-  how: 'Browsers block reading response headers cross-origin, so this calls /api/headers?url=… on your own host. A Cloudflare Worker that proxies the request and returns its headers is included below the tool.',
   render(w){
     const url = $.in('https://…', 'https://example.com');
     const out = $.out();
@@ -707,7 +765,7 @@ tool({
         const j = await r.json();
         out.textContent = `status ${j.status}\n\n` + Object.entries(j.headers).map(([k, v]) => `${k}: ${v}`).join('\n');
       } catch (e) {
-        out.textContent = `Endpoint not reachable (${e.message}).\n\nDeploy this Cloudflare Worker at /api/headers:\n\nexport default {\n  async fetch(req) {\n    const url = new URL(req.url).searchParams.get('url');\n    if (!url) return new Response('missing url', { status: 400 });\n    const r = await fetch(url, { redirect: 'manual' });\n    return Response.json({\n      status: r.status,\n      headers: Object.fromEntries(r.headers)\n    }, { headers: { 'access-control-allow-origin': '*' } });\n  }\n}`;
+        out.textContent = `Endpoint not reachable (${e.message}).\n\nDeploy a Cloudflare Worker at /api/headers that fetches the target and returns { status, headers }.`;
       }
     };
     w.append($.row(url, $.btn('Fetch headers', go, true)), out);
@@ -718,7 +776,6 @@ tool({
   id: 'ssl-check', cat: 'net', name: 'SSL Certificate Checker', needsApi: true,
   desc: 'Certificate subject, issuer, and expiry for a host.',
   keywords: 'ssl tls certificate expiry check',
-  how: 'Requires a server-side TLS handshake. Front end calls /api/ssl?host=…; a Worker using Cloudflare’s fetch to the host and reading the certificate metadata is the shortest path.',
   render(w){
     const host = $.in('host', 'example.com');
     const out = $.out();
@@ -729,7 +786,7 @@ tool({
         if (!r.ok) throw new Error('endpoint returned ' + r.status);
         out.textContent = JSON.stringify(await r.json(), null, 2);
       } catch (e) {
-        out.textContent = `Endpoint not reachable (${e.message}).\n\nThis needs a TLS handshake the browser cannot perform or report.\nServer contract:  GET /api/ssl?host=<host>  →  { subject, issuer, validFrom, validTo, daysLeft, altNames[] }\nRuntime options: Node with tls.connect + getPeerCertificate(), or Cloudflare Workers with a TLS-socket helper.`;
+        out.textContent = `Endpoint not reachable (${e.message}).\n\nNeeds a server-side TLS handshake. Contract: GET /api/ssl?host=<host> → { subject, issuer, validFrom, validTo, daysLeft, altNames[] }.`;
       }
     };
     w.append($.row(host, $.btn('Check certificate', go, true)), out);
@@ -740,7 +797,6 @@ tool({
   id: 'url-shortener', cat: 'net', name: 'URL Shortener', needsApi: true,
   desc: 'Shorten a link through your own endpoint (or a keyed provider).',
   keywords: 'short url link tiny',
-  how: 'Public shorteners block cross-origin requests. Point this at /api/shorten on your host, which forwards to your provider of choice with the API key kept server-side.',
   render(w){
     const url = $.in('long URL', '');
     const out = $.out();
@@ -751,7 +807,7 @@ tool({
         const j = await r.json();
         out.textContent = j.short || JSON.stringify(j);
       } catch (e) {
-        out.textContent = `Endpoint not reachable (${e.message}).\n\nServer contract:  POST /api/shorten { url } → { short }\nBody: forward to your provider, return the short link. Keeps the API key out of the page.`;
+        out.textContent = `Endpoint not reachable (${e.message}).\n\nContract: POST /api/shorten { url } → { short }.`;
       }
     };
     w.append($.row(url, $.btn('Shorten', go, true)), out);
@@ -781,7 +837,6 @@ tool({
   id: 'screenshot', cat: 'net', name: 'Website Screenshot Tool', needsApi: true,
   desc: 'Full-page screenshot through a rendering service you control.',
   keywords: 'screenshot website capture page',
-  how: 'Rendering arbitrary pages needs a headless browser. Front end calls /api/screenshot?url=… which should return image/png. Puppeteer or Playwright behind a queue is the usual build.',
   render(w){
     const url = $.in('https://…', 'https://example.com');
     const out = el('div', { class: 'col' });
@@ -793,7 +848,7 @@ tool({
         out.replaceChildren(el('img', { src: URL.createObjectURL(blob), class: 'preview' }),
           $.btn('Download', () => download(blob, 'screenshot.png')));
       } catch (e) {
-        out.replaceChildren(el('div', { class: 'err', text: `Endpoint not reachable (${e.message}).\n\nServer contract:  GET /api/screenshot?url=<url>  →  image/png\nImplementation: Playwright page.screenshot({ fullPage: true }) behind a rate-limited queue.` }));
+        out.replaceChildren(el('div', { class: 'err', text: `Endpoint not reachable (${e.message}).\n\nContract: GET /api/screenshot?url=<url> → image/png. Puppeteer / Playwright page.screenshot({ fullPage: true }).` }));
       }
     };
     w.append($.row(url, $.btn('Capture', go, true)), out);
