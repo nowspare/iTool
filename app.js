@@ -2,7 +2,6 @@
 (() => {
 'use strict';
 
-/* ---------- DOM helper ---------- */
 function el(tag, attrs, ...kids){
   const n = document.createElement(tag);
   if (attrs) for (const [k, v] of Object.entries(attrs)){
@@ -21,13 +20,11 @@ function el(tag, attrs, ...kids){
   return n;
 }
 
-/* ---------- storage ---------- */
 const store = {
   get(k, d){ try { const v = localStorage.getItem('uh.' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
   set(k, v){ try { localStorage.setItem('uh.' + k, JSON.stringify(v)); } catch {} }
 };
 
-/* ---------- lazy CDN libs ---------- */
 const LIBS = {
   pdflib: { src: 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js', g: 'PDFLib' },
   pdfjs:  { src: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js', g: 'pdfjsLib',
@@ -52,7 +49,6 @@ function lib(name){
   });
 }
 
-/* ---------- io helpers ---------- */
 function download(data, name, type = 'application/octet-stream'){
   const blob = data instanceof Blob ? data : new Blob([data], { type });
   const url = URL.createObjectURL(blob);
@@ -78,7 +74,6 @@ async function copy(text){
   try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
 }
 
-/* ---------- UI kit ---------- */
 const ui = {
   ta(ph = '', val = ''){ return el('textarea', { class: 'ta', placeholder: ph, spellcheck: 'false', value: val }); },
   in(ph = '', val = '', type = 'text'){ return el('input', { class: 'in', placeholder: ph, type, value: val }); },
@@ -104,7 +99,6 @@ const ui = {
     zone.append(input);
     return { zone, list, setNames: names => { list.textContent = ''; names.forEach(n => list.append(el('div', { text: n }))); } };
   },
-  /* 360° progress ring. size in px, stroke in px. set(frac 0..1, main, sub). */
   ring({ size = 240, stroke = 12 } = {}){
     const NS = 'http://www.w3.org/2000/svg';
     const c = size / 2;
@@ -124,22 +118,22 @@ const ui = {
     const prog = mk('circle', {
       cx: c, cy: c, r, fill: 'none',
       'stroke-width': stroke, 'stroke-linecap': 'round',
-      'stroke-dasharray': circ, 'stroke-dashoffset': circ,
+      'stroke-dasharray': String(circ), 'stroke-dashoffset': String(circ),
       transform: `rotate(-90 ${c} ${c})`
     });
     prog.style.stroke = 'var(--accent)';
 
     const main = mk('text', {
       x: c, y: c + size * 0.06, 'text-anchor': 'middle',
-      'font-size': size * 0.17, 'font-weight': '600'
+      'font-size': String(size * 0.17), 'font-weight': '600'
     });
     main.style.fill = 'var(--text)';
     main.style.fontFamily = 'var(--mono)';
     main.style.fontVariantNumeric = 'tabular-nums';
 
     const sub = mk('text', {
-      x: c, y: c + size * 0.19, 'text-anchor': 'middle',
-      'font-size': size * 0.072
+      x: c, y: c + size * 0.20, 'text-anchor': 'middle',
+      'font-size': String(size * 0.07)
     });
     sub.style.fill = 'var(--muted)';
     sub.style.fontFamily = 'var(--mono)';
@@ -158,7 +152,6 @@ const ui = {
   }
 };
 
-/* ---------- registry ---------- */
 const TOOLS = [];
 function tool(def){
   if (!def.id || !def.render) throw new Error('bad tool def');
@@ -168,7 +161,6 @@ function tool(def){
   if (!TOOLS.some(t => t.id === def.id)) TOOLS.push(def);
 }
 
-/* ---------- categories ---------- */
 const CATS = [
   { id: 'pdf',     name: 'PDF Tools',            mono: 'PD' },
   { id: 'image',   name: 'Image Tools',          mono: 'IM' },
@@ -181,7 +173,6 @@ const CATS = [
   { id: 'daily',   name: 'Everyday Utilities',   mono: 'DY' }
 ];
 
-/* ---------- state ---------- */
 const S = {
   favs: store.get('favs', []),
   recent: store.get('recent', []),
@@ -205,7 +196,6 @@ function applyTheme(){
   store.set('theme', S.theme); store.set('mode', S.mode);
 }
 
-/* ---------- favorites / recents ---------- */
 function toggleFav(id){
   const i = S.favs.indexOf(id);
   i < 0 ? S.favs.unshift(id) : S.favs.splice(i, 1);
@@ -216,7 +206,6 @@ function markRecent(id){
   store.set('recent', S.recent);
 }
 
-/* ---------- card ---------- */
 function card(t){
   return el('a', { class: 'card', href: '#/t/' + t.id },
     el('div', { class: 'mono-badge', text: (CATS.find(c => c.id === t.cat)?.mono) || '··' }),
@@ -234,7 +223,6 @@ function section(title, list, href){
   );
 }
 
-/* ---------- views ---------- */
 const view = document.getElementById('view');
 
 function viewHome(){
@@ -302,6 +290,10 @@ function viewTool(id){
   const t = TOOLS.find(x => x.id === id);
   if (!t) return viewHome();
   markRecent(id);
+
+  const oldWs = view.querySelector('.workspace');
+  if (oldWs) oldWs.dispatchEvent(new CustomEvent('uh:unmount'));
+
   const c = CATS.find(x => x.id === t.cat);
   const favBtn = el('button', {
     class: 'fav-btn', type: 'button',
@@ -327,7 +319,6 @@ function viewTool(id){
     });
 }
 
-/* ---------- router ---------- */
 function route(){
   const h = location.hash.replace(/^#\/?/, '');
   document.getElementById('side').classList.remove('open');
@@ -341,7 +332,6 @@ function route(){
   viewHome();
 }
 
-/* ---------- chrome ---------- */
 function buildNav(){
   const nav = document.getElementById('cats');
   nav.replaceChildren(
@@ -367,7 +357,6 @@ function buildThemePop(){
   });
 }
 
-/* ---------- boot ---------- */
 function boot(){
   applyTheme();
   buildNav();
@@ -403,7 +392,6 @@ function boot(){
   route();
 }
 
-/* ---------- public surface ---------- */
 window.UH = { el, tool, ui, lib, download, readFile, bytes, copy, store, CATS, TOOLS, S };
 window.addEventListener('DOMContentLoaded', boot);
 
