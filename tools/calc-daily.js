@@ -36,6 +36,8 @@ function calc(src){
   return out;
 }
 
+/* ============================ CALCULATORS ============================ */
+
 tool({
   id: 'calc-standard', cat: 'calc', name: 'Standard Calculator',
   desc: 'Keyboard-friendly arithmetic with parenthesis and percent.',
@@ -77,8 +79,8 @@ tool({
     const out = $.out();
     const go = () => { try { out.textContent = String(calc(ta.value)); } catch (e) { out.textContent = 'Error: ' + e.message; } };
     const insert = s => { ta.value += s; ta.focus(); };
-    const fns = ['sqrt(', 'sin(', 'cos(', 'tan(', 'log(', 'ln(', 'abs(', 'exp(', '^', '!', 'pi'];
-    w.append(ta, $.row(...fns.map(f => $.btn(f, () => insert(f === 'pi' ? '3.141592653589793' : f)))),
+    const fns = ['sqrt(', 'sin(', 'cos(', 'tan(', 'log(', 'ln(', 'abs(', 'exp(', '^', '!'];
+    w.append(ta, $.row(...fns.map(f => $.btn(f, () => insert(f))), $.btn('π', () => insert('3.141592653589793'))),
       $.row($.btn('=', go, true), $.btn('Clear', () => { ta.value = ''; out.textContent = ''; })),
       out, $.hint('Trig works in radians.'));
     ta.onkeydown = e => { if (e.key === 'Enter') go(); };
@@ -126,7 +128,7 @@ tool({
       if (dd < 0){ m--; dd += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
       if (m < 0){ y--; m += 12; }
       const days = Math.floor((now - b) / 86400000);
-      out.textContent = `${y} years, ${m} months, ${dd} days\n${days.toLocaleString()} days total\n${(days / 7).toFixed(1)} weeks\n${Math.floor(days / 365.25)} years\nnext birthday in ${Math.ceil(((new Date(now.getFullYear(), b.getMonth(), b.getDate()) - now) / 86400000 + 365) % 365)} days`;
+      out.textContent = `${y} years, ${m} months, ${dd} days\n${days.toLocaleString()} days total\n${(days / 7).toFixed(1)} weeks\nnext birthday in ${Math.ceil(((new Date(now.getFullYear(), b.getMonth(), b.getDate()) - now) / 86400000 + 365) % 365)} days`;
     };
     d.onchange = go;
     w.append($.label('Date of birth', d), $.btn('Calculate', go, true), out);
@@ -214,7 +216,7 @@ tool({
       if (isNaN(a) || isNaN(r)) return;
       const net = mode.value === 'add' ? a : a / (1 + r / 100);
       const tax = mode.value === 'add' ? a * r / 100 : a - net;
-      out.textContent = `net        ${net.toFixed(2)}\ntax @ ${r}%  ${tax.toFixed(2)}\ngross      ${(net + tax).toFixed(2)}\n\nCGST @ ${(r / 2)}%  ${(tax / 2).toFixed(2)}\nSGST @ ${(r / 2)}%  ${(tax / 2).toFixed(2)}`;
+      out.textContent = `net        ${net.toFixed(2)}\ntax @ ${r}%  ${tax.toFixed(2)}\ngross      ${(net + tax).toFixed(2)}\n\nCGST @ ${r / 2}%  ${(tax / 2).toFixed(2)}\nSGST @ ${r / 2}%  ${(tax / 2).toFixed(2)}`;
     };
     [amt, rate].forEach(x => x.oninput = go); mode.onchange = go;
     w.append($.row($.label('Amount', amt), $.label('Rate %', rate), $.label('Mode', mode)), out);
@@ -367,14 +369,14 @@ tool({
     const amt = $.in('amount', '1', 'number');
     const from = $.sel([], 'USD'), to = $.sel([], 'EUR');
     const out = $.out();
-    let rates = null, base = 'USD';
+    let rates = null;
     const fill = list => { from.replaceChildren(...list.map(c => el('option', { value: c }, c))); to.replaceChildren(...list.map(c => el('option', { value: c, selected: c === 'EUR' }, c))); };
     const load = async () => {
       try {
         out.textContent = 'Fetching rates…';
         const res = await fetch('https://open.er-api.com/v6/latest/USD');
         const j = await res.json();
-        rates = j.rates; base = 'USD';
+        rates = j.rates;
         fill(Object.keys(rates).sort());
         out.textContent = `rates updated ${j.time_last_update_utc || ''}`;
         conv();
@@ -422,7 +424,7 @@ tool({
   }
 });
 
-/* ============================ EVERYDAY ============================ */
+/* ============================ EVERYDAY UTILITIES ============================ */
 
 tool({
   id: 'recipe-convert', cat: 'daily', name: 'Recipe Measurement Converter',
@@ -436,64 +438,11 @@ tool({
     const out = $.out();
     const go = () => {
       const g = ING[ing.value] * (+cups.value || 0) * (+scale.value || 0);
-      out.textContent = `${(+cups.value * +scale.value).toFixed(2)} cups\n${(g).toFixed(1)} g\n${(g * 0.03527396).toFixed(2)} oz\n${(g).toFixed(1)} ml (volume approx)\n\n1 tbsp = 14.8 ml · 1 tsp = 4.93 ml · 1 cup = 236.6 ml US`;
+      out.textContent = `${((+cups.value || 0) * (+scale.value || 0)).toFixed(2)} cups\n${g.toFixed(1)} g\n${(g * 0.03527396).toFixed(2)} oz\n${g.toFixed(1)} ml (volume approx)\n\n1 tbsp = 14.8 ml · 1 tsp = 4.93 ml · 1 cup = 236.6 ml US`;
     };
-    [ing, cups, scale].forEach(x => x.oninput = x.onchange = go); go();
+    [ing, cups, scale].forEach(x => { x.oninput = go; x.onchange = go; });
+    go();
     w.append($.row($.label('Ingredient', ing), $.label('Cups', cups), $.label('Scale', scale)), out);
-  }
-});
-
-tool({
-  id: 'world-clock', cat: 'daily', name: 'World Clock',
-  desc: 'Live times across time zones, switchable 12 or 24 hour.',
-  keywords: 'world clock timezone zones now 12 hour 24 hour am pm',
-  render(w){
-    const ZONES = ['UTC', 'America/Los_Angeles', 'America/Denver', 'America/Chicago', 'America/New_York',
-      'America/Sao_Paulo', 'Europe/London', 'Europe/Lisbon', 'Europe/Berlin', 'Europe/Paris',
-      'Europe/Moscow', 'Africa/Cairo', 'Asia/Dubai', 'Asia/Karachi', 'Asia/Kolkata',
-      'Asia/Bangkok', 'Asia/Shanghai', 'Asia/Singapore', 'Asia/Tokyo', 'Australia/Sydney'];
-    const home = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-    let twelve = store.get('wc.12', true);
-    const chips = el('div', { class: 'row' });
-    const rows = el('div', { class: 'list' });
-
-    const fmtTime = z => new Intl.DateTimeFormat('en-US', {
-      timeZone: z, hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: twelve
-    }).format(new Date());
-    const fmtDate = z => new Intl.DateTimeFormat('en-GB', {
-      timeZone: z, weekday: 'short', day: '2-digit', month: 'short'
-    }).format(new Date());
-
-    const tick = () => {
-      rows.replaceChildren(...ZONES.map(z => {
-        const isHome = z === home;
-        return el('div', { class: 'item', style: { flexWrap: 'nowrap' } },
-          el('span', { text: z.replace(/_/g, ' ') + (isHome ? ' · you' : ''),
-            style: { color: isHome ? 'var(--text)' : 'var(--muted)', fontWeight: isHome ? '600' : '400',
-              flex: '1 1 auto', minWidth: '0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }),
-          el('span', { class: 'hint', text: fmtDate(z), style: { flex: '0 0 auto' } }),
-          el('span', { text: fmtTime(z),
-            style: { fontFamily: 'var(--mono)', fontVariantNumeric: 'tabular-nums',
-              width: twelve ? '108px' : '84px', textAlign: 'right', flex: '0 0 auto' } })
-        );
-      }));
-    };
-
-    const paintChips = () => {
-      chips.replaceChildren(
-        el('button', { class: 'chip', type: 'button', 'aria-current': String(twelve),
-          onclick: () => { twelve = true; store.set('wc.12', true); paintChips(); tick(); } }, '12-hour'),
-        el('button', { class: 'chip', type: 'button', 'aria-current': String(!twelve),
-          onclick: () => { twelve = false; store.set('wc.12', false); paintChips(); tick(); } }, '24-hour')
-      );
-    };
-
-    paintChips(); tick();
-    const id = setInterval(tick, 1000);
-    w.addEventListener('uh:unmount', () => clearInterval(id));
-    w.append($.row(el('span', { class: 'fl', text: 'Format' }), chips), rows);
   }
 });
 
@@ -502,7 +451,7 @@ tool({
   desc: '360° countdown ring with presets, alarm tone, and notification.',
   keywords: 'cooking timer countdown alarm kitchen ring dial',
   render(w){
-    const ring = $.ring({ size: 248, stroke: 12 });
+    const ring = $.ring({ size: 260, stroke: 12 });
     const phase = $.hint('Ready');
     const m = $.in('minutes', '10', 'number');
     const s = $.in('seconds', '0', 'number');
@@ -536,8 +485,10 @@ tool({
     };
 
     const finish = () => {
-      running = false; cancelAnimationFrame(raf); remaining = 0;
-      paint(); phase.textContent = 'DONE'; buzz();
+      running = false; cancelAnimationFrame(raf);
+      remaining = 0; paint();
+      phase.textContent = 'DONE';
+      buzz();
     };
 
     const loop = () => {
@@ -593,6 +544,61 @@ tool({
       $.row($.label('Minutes', m), $.label('Seconds', s)),
       $.row($.btn('Start', start, true), $.btn('Pause', pause), $.btn('Reset', reset))
     );
+  }
+});
+
+tool({
+  id: 'world-clock', cat: 'daily', name: 'World Clock',
+  desc: 'Live times across time zones, switchable 12 or 24 hour.',
+  keywords: 'world clock timezone zones now 12 hour 24 hour am pm',
+  render(w){
+    const ZONES = ['UTC', 'America/Los_Angeles', 'America/Denver', 'America/Chicago', 'America/New_York',
+      'America/Sao_Paulo', 'Europe/London', 'Europe/Lisbon', 'Europe/Berlin', 'Europe/Paris',
+      'Europe/Moscow', 'Africa/Cairo', 'Asia/Dubai', 'Asia/Karachi', 'Asia/Kolkata',
+      'Asia/Bangkok', 'Asia/Shanghai', 'Asia/Singapore', 'Asia/Tokyo', 'Australia/Sydney'];
+    const home = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    let twelve = store.get('wc.12', true);
+    const chips = el('div', { class: 'row' });
+    const rows = el('div', { class: 'list' });
+
+    const fmtTime = z => new Intl.DateTimeFormat('en-US', {
+      timeZone: z, hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hourCycle: twelve ? 'h12' : 'h23'
+    }).format(new Date());
+
+    const fmtDate = z => new Intl.DateTimeFormat('en-GB', {
+      timeZone: z, weekday: 'short', day: '2-digit', month: 'short'
+    }).format(new Date());
+
+    const tick = () => {
+      rows.replaceChildren(...ZONES.map(z => {
+        const isHome = z === home;
+        return el('div', { class: 'item', style: { flexWrap: 'nowrap' } },
+          el('span', { text: z.replace(/_/g, ' ') + (isHome ? ' · you' : ''),
+            style: { color: isHome ? 'var(--text)' : 'var(--muted)', fontWeight: isHome ? '600' : '400',
+              flex: '1 1 auto', minWidth: '0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }),
+          el('span', { class: 'hint', text: fmtDate(z), style: { flex: '0 0 auto' } }),
+          el('span', { text: fmtTime(z),
+            style: { fontFamily: 'var(--mono)', fontVariantNumeric: 'tabular-nums',
+              width: twelve ? '108px' : '84px', textAlign: 'right', flex: '0 0 auto' } })
+        );
+      }));
+    };
+
+    const paintChips = () => {
+      chips.replaceChildren(
+        el('button', { class: 'chip', type: 'button', 'aria-current': String(twelve),
+          onclick: () => { twelve = true; store.set('wc.12', true); paintChips(); tick(); } }, '12-hour'),
+        el('button', { class: 'chip', type: 'button', 'aria-current': String(!twelve),
+          onclick: () => { twelve = false; store.set('wc.12', false); paintChips(); tick(); } }, '24-hour')
+      );
+    };
+
+    paintChips(); tick();
+    const id = setInterval(tick, 1000);
+    w.addEventListener('uh:unmount', () => clearInterval(id));
+    w.append($.row(el('span', { class: 'fl', text: 'Format' }), chips), rows);
   }
 });
 
@@ -667,7 +673,7 @@ tool({
         `${String(p).padStart(2)}%   tip ${(b * p / 100).toFixed(2).padStart(9)}   total ${(b * (1 + p / 100)).toFixed(2).padStart(9)}`
       ).join('\n');
     };
-    bill.oninput = go;
+    bill.oninput = go; go();
     w.append($.label('Bill amount', bill), out);
   }
 });
@@ -677,8 +683,8 @@ tool({
   desc: 'Approximate US / UK / EU / JP conversions for tops and shoes.',
   keywords: 'clothing size shoe convert us uk eu jp',
   render(w){
-    const TOPS = [[ 'XS', '6', '34', 'S' ], [ 'S', '8', '36', 'M' ], [ 'M', '10', '38', 'L' ], [ 'L', '12', '40', 'LL' ], [ 'XL', '14', '42', '3L' ], [ 'XXL', '16', '44', '4L' ]];
-    const SHOES = [[ '6', '4', '36' ], [ '7', '5', '38' ], [ '8', '6', '39' ], [ '9', '7', '41' ], [ '10', '8', '42' ], [ '11', '9', '44' ], [ '12', '10', '45' ]];
+    const TOPS = [['XS', '6', '34', 'S'], ['S', '8', '36', 'M'], ['M', '10', '38', 'L'], ['L', '12', '40', 'LL'], ['XL', '14', '42', '3L'], ['XXL', '16', '44', '4L']];
+    const SHOES = [['6', '4', '36'], ['7', '5', '38'], ['8', '6', '39'], ['9', '7', '41'], ['10', '8', '42'], ['11', '9', '44'], ['12', '10', '45']];
     const kind = $.sel([{ v: 'top', t: 'Tops' }, { v: 'shoe', t: 'Shoes' }], 'top');
     const table = el('div', { class: 'diff' });
     const paint = () => {
@@ -768,7 +774,7 @@ tool({
       ['doctor', 'Doctor (name / phone)'], ['insurance', 'Insurance / policy number']
     ];
     const inputs = fields.map(([k, label]) => {
-      const i = k === 'allergies' || k === 'conditions' || k === 'meds' ? $.ta('') : $.in('');
+      const i = (k === 'allergies' || k === 'conditions' || k === 'meds') ? $.ta('') : $.in('');
       i.value = saved[k] || '';
       if (i.tagName === 'TEXTAREA') i.style.minHeight = '60px';
       i.oninput = () => { const s = store.get(KEY, {}); s[k] = i.value; store.set(KEY, s); };
@@ -776,12 +782,13 @@ tool({
     });
     const makeCard = () => {
       const s = store.get(KEY, {});
+      const esc = v => String(v || '—').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
       const html = `<!doctype html><meta charset="utf-8"><title>Emergency card</title>
 <style>body{font-family:system-ui,sans-serif;padding:30px;max-width:520px}
 h1{font-size:18px;letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid #000;padding-bottom:8px}
 dt{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#555;margin-top:12px}
 dd{margin:2px 0 0;font-size:15px}@media print{@page{margin:18mm}}</style>
-<h1>Emergency information</h1><dl>${fields.map(([k, l]) => `<dt>${l}</dt><dd>${(s[k] || '—').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</dd>`).join('')}</dl>`;
+<h1>Emergency information</h1><dl>${fields.map(([k, l]) => `<dt>${l}</dt><dd>${esc(s[k])}</dd>`).join('')}</dl>`;
       window.UH.download(html, 'emergency-card.html', 'text/html');
     };
     w.append(...inputs, $.row($.btn('Download printable card', makeCard, true),
@@ -814,8 +821,7 @@ tool({
         return new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(d);
       };
       const rows = [];
-      const header = 'UTC  ' + [...chosen].map(z => z.split('/').pop().slice(0, 8).padEnd(9)).join('');
-      rows.push(header);
+      rows.push('UTC  ' + [...chosen].map(z => z.split('/').pop().slice(0, 8).padEnd(9)).join(''));
       hours.forEach(h => {
         rows.push(String(h).padStart(2) + ':00 ' + [...chosen].map(z => fmt(h, z).padEnd(9)).join(''));
       });
