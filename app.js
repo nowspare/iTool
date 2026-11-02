@@ -105,7 +105,6 @@ const ui = {
     return { zone, list, setNames: names => { list.textContent = ''; names.forEach(n => list.append(el('div', { text: n }))); } };
   }
 };
-
 ring({ size = 240, stroke = 12 } = {}){
     const NS = 'http://www.w3.org/2000/svg';
     const c = size / 2;
