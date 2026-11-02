@@ -196,6 +196,42 @@ function applyTheme(){
   store.set('theme', S.theme); store.set('mode', S.mode);
 }
 
+/* ---------- splash ---------- */
+function runSplash(){
+  const sp = document.getElementById('splash');
+  if (!sp) return;
+
+  const force = /[?&]splash=1/.test(location.search);
+  const shown = sessionStorage.getItem('uh.splash') === '1';
+  if (shown && !force){ sp.remove(); return; }
+
+  /* clamp to your 5–10s window; data-duration overrides */
+  const raw = +(sp.dataset.duration) || 5500;
+  const dur = Math.max(5000, Math.min(10000, raw));
+  sp.style.setProperty('--sp-dur', dur + 'ms');
+
+  const prevOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
+
+  let closed = false;
+  const finish = () => {
+    if (closed) return;
+    closed = true;
+    sp.classList.add('out');
+    sessionStorage.setItem('uh.splash', '1');
+    document.body.style.overflow = prevOverflow;
+    setTimeout(() => sp.remove(), 650);
+  };
+
+  const timer = setTimeout(finish, dur);
+  sp.addEventListener('pointerdown', () => { clearTimeout(timer); finish(); }, { once: true });
+  sp.addEventListener('keydown', () => { clearTimeout(timer); finish(); }, { once: true });
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape'){ clearTimeout(timer); finish(); }
+  }, { once: true });
+}
+
+/* ---------- favorites / recents ---------- */
 function toggleFav(id){
   const i = S.favs.indexOf(id);
   i < 0 ? S.favs.unshift(id) : S.favs.splice(i, 1);
@@ -358,6 +394,7 @@ function buildThemePop(){
 }
 
 function boot(){
+  runSplash();
   applyTheme();
   buildNav();
   buildThemePop();
