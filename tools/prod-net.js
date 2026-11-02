@@ -192,7 +192,7 @@ tool({
 
 tool({
   id: 'stopwatch', cat: 'prod', name: 'Stopwatch',
-  desc: '360° sixty-second sweep dial with hundredths, lap splits, and tick marks.',
+  desc: 'sixty-second sweep dial with hundredths, lap splits, and tick marks.',
   keywords: 'stopwatch timer lap elapsed dial',
   render(w){
     const SIZE = 260;
