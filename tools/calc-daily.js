@@ -445,8 +445,8 @@ tool({
 
 tool({
   id: 'world-clock', cat: 'daily', name: 'World Clock',
-  desc: 'Live times across any number of time zones, 12 or 24 hour.',
-  keywords: 'world clock timezone time zones now 12 hour 24 hour am pm',
+  desc: 'Live times across time zones, switchable 12 or 24 hour.',
+  keywords: 'world clock timezone zones now 12 hour 24 hour am pm',
   render(w){
     const ZONES = ['UTC', 'America/Los_Angeles', 'America/Denver', 'America/Chicago', 'America/New_York',
       'America/Sao_Paulo', 'Europe/London', 'Europe/Lisbon', 'Europe/Berlin', 'Europe/Paris',
@@ -458,23 +458,25 @@ tool({
     const chips = el('div', { class: 'row' });
     const rows = el('div', { class: 'list' });
 
-    const fmtTime = z => new Intl.DateTimeFormat(undefined, {
+    const fmtTime = z => new Intl.DateTimeFormat('en-US', {
       timeZone: z, hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: twelve, hourCycle: twelve ? 'h12' : 'h23'
+      hour12: twelve
     }).format(new Date());
-    const fmtDate = z => new Intl.DateTimeFormat(undefined, {
+    const fmtDate = z => new Intl.DateTimeFormat('en-GB', {
       timeZone: z, weekday: 'short', day: '2-digit', month: 'short'
     }).format(new Date());
 
     const tick = () => {
       rows.replaceChildren(...ZONES.map(z => {
         const isHome = z === home;
-        return el('div', { class: 'item' },
-          el('span', { text: z.replace(/_/g, ' ') + (isHome ? ' · your zone' : ''),
-            style: { color: isHome ? 'var(--text)' : 'var(--muted)', fontWeight: isHome ? '600' : '400' } }),
-          el('span', { class: 'hint', style: { marginLeft: 'auto' }, text: fmtDate(z) }),
-          el('span', { style: { fontFamily: 'var(--mono)', fontVariantNumeric: 'tabular-nums',
-            width: twelve ? '112px' : '88px', textAlign: 'right' }, text: fmtTime(z) })
+        return el('div', { class: 'item', style: { flexWrap: 'nowrap' } },
+          el('span', { text: z.replace(/_/g, ' ') + (isHome ? ' · you' : ''),
+            style: { color: isHome ? 'var(--text)' : 'var(--muted)', fontWeight: isHome ? '600' : '400',
+              flex: '1 1 auto', minWidth: '0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }),
+          el('span', { class: 'hint', text: fmtDate(z), style: { flex: '0 0 auto' } }),
+          el('span', { text: fmtTime(z),
+            style: { fontFamily: 'var(--mono)', fontVariantNumeric: 'tabular-nums',
+              width: twelve ? '108px' : '84px', textAlign: 'right', flex: '0 0 auto' } })
         );
       }));
     };
@@ -534,12 +536,8 @@ tool({
     };
 
     const finish = () => {
-      running = false;
-      cancelAnimationFrame(raf);
-      remaining = 0;
-      paint();
-      phase.textContent = 'DONE';
-      buzz();
+      running = false; cancelAnimationFrame(raf); remaining = 0;
+      paint(); phase.textContent = 'DONE'; buzz();
     };
 
     const loop = () => {
@@ -558,32 +556,24 @@ tool({
       }
       if (remaining <= 0){ phase.textContent = 'Set a duration first.'; return; }
       endAt = performance.now() + remaining;
-      running = true;
-      phase.textContent = 'Running';
-      paint();
-      loop();
+      running = true; phase.textContent = 'Running';
+      paint(); loop();
     };
 
     const pause = () => {
       if (!running) return;
       remaining = Math.max(0, endAt - performance.now());
-      running = false;
-      cancelAnimationFrame(raf);
-      phase.textContent = 'Paused';
-      paint();
+      running = false; cancelAnimationFrame(raf);
+      phase.textContent = 'Paused'; paint();
     };
 
     const reset = () => {
-      running = false;
-      cancelAnimationFrame(raf);
-      total = remaining = 0;
-      phase.textContent = 'Ready';
-      paint();
+      running = false; cancelAnimationFrame(raf);
+      total = remaining = 0; phase.textContent = 'Ready'; paint();
     };
 
     const preset = min => {
-      running = false;
-      cancelAnimationFrame(raf);
+      running = false; cancelAnimationFrame(raf);
       m.value = String(min); s.value = '0';
       total = remaining = min * 60000;
       start();
@@ -596,14 +586,9 @@ tool({
     w.append(
       el('div', { style: { display: 'grid', placeItems: 'center' } }, ring.node),
       phase,
-      $.row(
-        el('button', { class: 'chip', type: 'button', onclick: () => preset(1) }, '1 min'),
-        el('button', { class: 'chip', type: 'button', onclick: () => preset(3) }, '3 min'),
-        el('button', { class: 'chip', type: 'button', onclick: () => preset(5) }, '5 min'),
-        el('button', { class: 'chip', type: 'button', onclick: () => preset(10) }, '10 min'),
-        el('button', { class: 'chip', type: 'button', onclick: () => preset(15) }, '15 min'),
-        el('button', { class: 'chip', type: 'button', onclick: () => preset(25) }, '25 min'),
-        el('button', { class: 'chip', type: 'button', onclick: () => preset(45) }, '45 min')
+      el('div', { class: 'row' },
+        ...['1', '3', '5', '10', '15', '25', '45'].map(min =>
+          el('button', { class: 'chip', type: 'button', onclick: () => preset(+min) }, min + ' min'))
       ),
       $.row($.label('Minutes', m), $.label('Seconds', s)),
       $.row($.btn('Start', start, true), $.btn('Pause', pause), $.btn('Reset', reset))
@@ -611,21 +596,6 @@ tool({
   }
 });
 
-    const paintChips = () => {
-      chips.replaceChildren(
-        el('button', { class: 'chip', type: 'button', 'aria-current': String(twelve),
-          onclick: () => { twelve = true; store.set('wc.12', true); paintChips(); tick(); } }, '12-hour'),
-        el('button', { class: 'chip', type: 'button', 'aria-current': String(!twelve),
-          onclick: () => { twelve = false; store.set('wc.12', false); paintChips(); tick(); } }, '24-hour')
-      );
-    };
-
-    paintChips(); tick();
-    const id = setInterval(tick, 1000);
-    w.addEventListener('uh:unmount', () => clearInterval(id));
-    w.append($.row(el('span', { class: 'fl', text: 'Format' }), chips), rows);
-  }
-});
 tool({
   id: 'date-finder', cat: 'daily', name: 'Calendar Date Finder',
   desc: 'Day of week for any date, plus “N days from today”.',
