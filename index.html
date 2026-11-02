@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>UtilityHub — 130 everyday tools</title>
+<title>iHub — 130 everyday tools</title>
 <meta name="description" content="PDF, image, text, calculator, file, developer and daily-life tools in one place.">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23141417'/%3E%3Cpath d='M21 18 V34 Q21 47 32 47 Q43 47 43 34 V18' stroke='%23ffffff' stroke-width='7' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23141417'/%3E%3Ccircle cx='32' cy='18' r='6' fill='%23ffffff'/%3E%3Cline x1='32' y1='30' x2='32' y2='52' stroke='%23ffffff' stroke-width='12' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="logo-mark.svg">
 <link rel="stylesheet" href="styles.css">
 <script>
-  /* paint theme before first frame — no white flash on a dark-mode load */
+  /* paint theme before first frame — no white flash on dark-mode load */
   try {
     var theme = JSON.parse(localStorage.getItem('uh.theme') || '"snow"');
     var mode = JSON.parse(localStorage.getItem('uh.mode') || '"auto"');
@@ -22,29 +22,35 @@
 <body>
 
 <!-- ================= SPLASH ================= -->
-<div id="splash" data-duration="5500" role="status" aria-label="UtilityHub loading">
-  <div class="sp-inner">
-    <svg class="sp-glyph" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-      <path d="M18 14 V32 Q18 50 32 50 Q46 50 46 32 V14"
-            stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"
-            fill="none" pathLength="1"/>
-    </svg>
-    <div class="sp-name">Utility<b>Hub</b></div>
-    <div class="sp-tag">Every ordinary digital task, one place.</div>
+<div id="splash" data-duration="6600" role="status" aria-label="iHub loading">
+  <div class="sp-stage">
+    <div class="sp-lockup">
+      <div class="sp-mark-slot">
+        <svg class="sp-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <circle class="sp-dot" cx="32" cy="16" r="7" fill="currentColor"/>
+          <line class="sp-stem" x1="32" y1="30" x2="32" y2="54"
+                stroke="currentColor" stroke-width="14" stroke-linecap="round" pathLength="1"/>
+          <circle class="sp-ripple" cx="32" cy="16" r="7" stroke="currentColor" fill="none"/>
+        </svg>
+      </div>
+      <div class="sp-word" aria-hidden="true">
+        <span class="sp-char">i</span><span class="sp-char">H</span><span class="sp-char">u</span><span class="sp-char">b</span>
+      </div>
+    </div>
+    <div class="sp-underline" aria-hidden="true"></div>
+    <div class="sp-tag">Every tool. One place.</div>
   </div>
-  <div class="sp-bar"><i></i></div>
-  <button class="sp-skip" type="button" aria-label="Skip intro">Skip</button>
 </div>
 <!-- ========================================== -->
 
 <header class="top">
   <button class="icon-btn" id="navToggle" aria-label="Menu">☰</button>
-  <a class="brand" href="#/">
-    <svg class="mark-svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-      <path d="M18 14 V32 Q18 50 32 50 Q46 50 46 32 V14"
-            stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <a class="brand" href="#/" aria-label="iHub home">
+    <svg class="mark-svg" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="16" r="7" fill="currentColor"/>
+      <line x1="32" y1="30" x2="32" y2="54" stroke="currentColor" stroke-width="14" stroke-linecap="round"/>
     </svg>
-    <span class="brand-name">UtilityHub</span>
+    <span class="brand-name">iHub</span>
   </a>
   <div class="search-wrap">
     <input id="search" class="search" type="search" placeholder="Search 130 tools…  (press /)" autocomplete="off" aria-label="Search tools">
