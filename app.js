@@ -79,32 +79,6 @@ async function copy(text){
 }
 
 /* ---------- UI kit ---------- */
-const ui = {
-  ta(ph = '', val = ''){ return el('textarea', { class: 'ta', placeholder: ph, spellcheck: 'false', value: val }); },
-  in(ph = '', val = '', type = 'text'){ return el('input', { class: 'in', placeholder: ph, type, value: val }); },
-  sel(opts, val){ return el('select', { class: 'sel' }, opts.map(o => el('option', { value: o.v ?? o, selected: (o.v ?? o) === val }, o.t ?? o))); },
-  btn(label, onclick, primary){ return el('button', { class: 'btn' + (primary ? ' btn-p' : ''), onclick, type: 'button' }, label); },
-  row(...k){ return el('div', { class: 'row' }, ...k); },
-  col(...k){ return el('div', { class: 'col' }, ...k); },
-  split(a, b){ return el('div', { class: 'split' }, a, b); },
-  label(t, c){ return el('label', { class: 'field' }, el('span', { class: 'fl' }, t), c); },
-  out(){ return el('pre', { class: 'out' }, ''); },
-  hint(t){ return el('p', { class: 'hint' }, t); },
-  dz(label, onFiles){
-    const input = el('input', { type: 'file', multiple: true, hidden: true });
-    const zone = el('div', { class: 'dz', tabindex: '0' }, label);
-    const list = el('div', { class: 'dz-list' });
-    const fire = files => { if (files?.length) onFiles([...files]); };
-    zone.onclick = () => input.click();
-    zone.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') input.click(); };
-    input.onchange = () => fire(input.files);
-    zone.ondragover = e => { e.preventDefault(); zone.classList.add('over'); };
-    zone.ondragleave = () => zone.classList.remove('over');
-    zone.ondrop = e => { e.preventDefault(); zone.classList.remove('over'); fire(e.dataTransfer.files); };
-    zone.append(input);
-    return { zone, list, setNames: names => { list.textContent = ''; names.forEach(n => list.append(el('div', { text: n }))); } };
-  }
-};
 ring({ size = 240, stroke = 12 } = {}){
     const NS = 'http://www.w3.org/2000/svg';
     const c = size / 2;
