@@ -5,34 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UtilityHub — 130 everyday tools</title>
 <meta name="description" content="PDF, image, text, calculator, file, developer and daily-life tools in one place.">
-<meta name="theme-color" content="#1b2330">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b2330'/%3E%3Ctext x='32' y='45' font-family='system-ui,-apple-system,Segoe UI,sans-serif' font-size='34' font-weight='700' fill='%23ffffff' text-anchor='middle'%3EU%3C/text%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='38' fill='%231b2330'/%3E%3Ctext x='90' y='126' font-family='system-ui,-apple-system,Segoe UI,sans-serif' font-size='96' font-weight='700' fill='%23ffffff' text-anchor='middle'%3EU%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23141417'/%3E%3Cpath d='M21 18 V34 Q21 47 32 47 Q43 47 43 34 V18' stroke='%23ffffff' stroke-width='7' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="logo-mark.svg">
 <link rel="stylesheet" href="styles.css">
+<script>
+  /* paint theme before first frame — no white flash on a dark-mode load */
+  try {
+    var theme = JSON.parse(localStorage.getItem('uh.theme') || '"snow"');
+    var mode = JSON.parse(localStorage.getItem('uh.mode') || '"auto"');
+    var dark = mode === 'dark' || (mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.mode = dark ? 'dark' : 'light';
+  } catch (e) {}
+</script>
 </head>
-<body class="uh-loading">
+<body>
 
-<!-- ============ SPLASH ============ -->
-<div class="splash" id="splash" aria-hidden="true">
-  <svg class="splash-mark" viewBox="0 0 120 120" width="104" height="104" role="img" aria-label="UtilityHub">
-    <circle class="sp-track" cx="60" cy="60" r="52" fill="none" stroke-width="2"/>
-    <circle class="sp-arc" cx="60" cy="60" r="52" fill="none" stroke-width="2"
-            stroke-dasharray="326.73" stroke-dashoffset="326.73"
-            transform="rotate(-90 60 60)" stroke-linecap="round"/>
-    <rect class="sp-box" x="36" y="36" width="48" height="48" rx="12"/>
-    <text class="sp-letter" x="60" y="66" text-anchor="middle"
-          font-family="ui-sans-serif,-apple-system,Segoe UI,Inter,sans-serif"
-          font-size="26" font-weight="700">U</text>
-  </svg>
-  <div class="splash-name">UtilityHub</div>
-  <div class="splash-sub">130 everyday tools</div>
-  <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+<!-- ================= SPLASH ================= -->
+<div id="splash" data-duration="5500" role="status" aria-label="UtilityHub loading">
+  <div class="sp-inner">
+    <svg class="sp-glyph" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <path d="M18 14 V32 Q18 50 32 50 Q46 50 46 32 V14"
+            stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"
+            fill="none" pathLength="1"/>
+    </svg>
+    <div class="sp-name">Utility<b>Hub</b></div>
+    <div class="sp-tag">Every ordinary digital task, one place.</div>
+  </div>
+  <div class="sp-bar"><i></i></div>
+  <button class="sp-skip" type="button" aria-label="Skip intro">Skip</button>
 </div>
-<!-- ============ /SPLASH ============ -->
+<!-- ========================================== -->
 
 <header class="top">
   <button class="icon-btn" id="navToggle" aria-label="Menu">☰</button>
-  <a class="brand" href="#/"><span class="mark">U</span> UtilityHub</a>
+  <a class="brand" href="#/">
+    <svg class="mark-svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <path d="M18 14 V32 Q18 50 32 50 Q46 50 46 32 V14"
+            stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    <span class="brand-name">UtilityHub</span>
+  </a>
   <div class="search-wrap">
     <input id="search" class="search" type="search" placeholder="Search 130 tools…  (press /)" autocomplete="off" aria-label="Search tools">
     <kbd class="kbd">/</kbd>
@@ -67,34 +80,5 @@
 <script src="tools/calc-daily.js" defer></script>
 <script src="tools/prod-net.js" defer></script>
 <script src="tools/image-pdf.js" defer></script>
-
-<script>
-/* Splash dismiss — fires when app.js announces ready, respects a 700ms floor
-   so the draw animation completes, and un-sets the scroll lock. Fallback at
-   4.5s so a JS failure never traps the user on a dead splash. */
-(() => {
-  const splash = document.getElementById('splash');
-  if (!splash) return;
-  const t0 = performance.now();
-  const MIN_MS = 700;
-  let ready = false;
-  let dismissed = false;
-
-  const dismiss = () => {
-    if (dismissed) return;
-    dismissed = true;
-    const wait = Math.max(0, MIN_MS - (performance.now() - t0));
-    setTimeout(() => {
-      document.body.classList.remove('uh-loading');
-      splash.classList.add('out');
-      setTimeout(() => splash.remove(), 400);
-    }, wait);
-  };
-
-  window.addEventListener('uh:ready', () => { ready = true; dismiss(); }, { once: true });
-  window.addEventListener('error', dismiss, { once: true });
-  setTimeout(dismiss, 4500);
-})();
-</script>
 </body>
 </html>
