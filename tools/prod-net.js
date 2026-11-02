@@ -109,7 +109,7 @@ tool({
 
 tool({
   id: 'pomodoro', cat: 'prod', name: 'Pomodoro Timer',
-  desc: '360° ring, 25/5 default cycle, adjustable lengths, long break after four rounds.',
+  desc: '25/5 default cycle, adjustable lengths, long break after four rounds.',
   keywords: 'pomodoro focus timer work break ring',
   render(w){
     const ring = $.ring({ size: 260, stroke: 12 });
@@ -192,7 +192,7 @@ tool({
 
 tool({
   id: 'stopwatch', cat: 'prod', name: 'Stopwatch',
-  desc: 'sixty-second sweep dial with hundredths, lap splits, and tick marks.',
+  desc: 'Sixty-second sweep dial with hundredths, lap splits, and tick marks.',
   keywords: 'stopwatch timer lap elapsed dial',
   render(w){
     const SIZE = 260;
@@ -289,7 +289,7 @@ tool({
 
 tool({
   id: 'countdown', cat: 'prod', name: 'Countdown Timer',
-  desc: '360° ring counting down to a target date and time.',
+  desc: ' Counting down to a target date and time.',
   keywords: 'countdown days until event timer ring',
   render(w){
     const ring = $.ring({ size: 260, stroke: 12 });
