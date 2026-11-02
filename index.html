@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en" data-theme="snow" data-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UtilityHub — 130 everyday tools</title>
+<meta name="description" content="PDF, image, text, calculator, file, developer and daily-life tools in one place.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <button class="icon-btn" id="navToggle" aria-label="Menu">☰</button>
+  <a class="brand" href="#/"><span class="mark">U</span> UtilityHub</a>
+  <div class="search-wrap">
+    <input id="search" class="search" type="search" placeholder="Search 130 tools…  (press /)" autocomplete="off" aria-label="Search tools">
+    <kbd class="kbd">/</kbd>
+  </div>
+  <button class="icon-btn" id="themeBtn" aria-label="Change theme">◐</button>
+</header>
+
+<div class="shell">
+  <aside class="side" id="side">
+    <nav id="cats" class="cats"></nav>
+    <div class="side-foot">
+      <a href="#/favorites" class="side-link">Favorites</a>
+      <a href="#/recent" class="side-link">Recently used</a>
+    </div>
+  </aside>
+  <main id="view" class="view" tabindex="-1"></main>
+</div>
+
+<div class="theme-pop" id="themePop" hidden>
+  <p class="tp-title">Theme</p>
+  <div id="themeList" class="tp-list"></div>
+  <p class="tp-title">Mode</p>
+  <div class="tp-modes">
+    <button data-mode="light" class="chip">Light</button>
+    <button data-mode="dark" class="chip">Dark</button>
+    <button data-mode="auto" class="chip">Auto</button>
+  </div>
+</div>
+
+<script src="app.js" defer></script>
+<script src="tools/text-data.js" defer></script>
+<script src="tools/calc-daily.js" defer></script>
+<script src="tools/prod-net.js" defer></script>
+<script src="tools/image-pdf.js" defer></script>
+</body>
+</html>
