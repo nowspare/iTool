@@ -444,6 +444,58 @@ tool({
 });
 
 tool({
+  id: 'world-clock', cat: 'daily', name: 'World Clock',
+  desc: 'Live times across any number of time zones, 12 or 24 hour.',
+  keywords: 'world clock timezone time zones now 12 hour 24 hour am pm',
+  render(w){
+    const ZONES = ['UTC', 'America/Los_Angeles', 'America/Denver', 'America/Chicago', 'America/New_York',
+      'America/Sao_Paulo', 'Europe/London', 'Europe/Lisbon', 'Europe/Berlin', 'Europe/Paris',
+      'Europe/Moscow', 'Africa/Cairo', 'Asia/Dubai', 'Asia/Karachi', 'Asia/Kolkata',
+      'Asia/Bangkok', 'Asia/Shanghai', 'Asia/Singapore', 'Asia/Tokyo', 'Australia/Sydney'];
+    const home = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    let twelve = store.get('wc.12', true);
+    const chips = el('div', { class: 'row' });
+    const rows = el('div', { class: 'list' });
+
+    const fmtTime = z => new Intl.DateTimeFormat(undefined, {
+      timeZone: z, hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: twelve, hourCycle: twelve ? 'h12' : 'h23'
+    }).format(new Date());
+    const fmtDate = z => new Intl.DateTimeFormat(undefined, {
+      timeZone: z, weekday: 'short', day: '2-digit', month: 'short'
+    }).format(new Date());
+
+    const tick = () => {
+      rows.replaceChildren(...ZONES.map(z => {
+        const isHome = z === home;
+        return el('div', { class: 'item' },
+          el('span', { text: z.replace(/_/g, ' ') + (isHome ? ' · your zone' : ''),
+            style: { color: isHome ? 'var(--text)' : 'var(--muted)', fontWeight: isHome ? '600' : '400' } }),
+          el('span', { class: 'hint', style: { marginLeft: 'auto' }, text: fmtDate(z) }),
+          el('span', { style: { fontFamily: 'var(--mono)', fontVariantNumeric: 'tabular-nums',
+            width: twelve ? '112px' : '88px', textAlign: 'right' }, text: fmtTime(z) })
+        );
+      }));
+    };
+
+    const paintChips = () => {
+      chips.replaceChildren(
+        el('button', { class: 'chip', type: 'button', 'aria-current': String(twelve),
+          onclick: () => { twelve = true; store.set('wc.12', true); paintChips(); tick(); } }, '12-hour'),
+        el('button', { class: 'chip', type: 'button', 'aria-current': String(!twelve),
+          onclick: () => { twelve = false; store.set('wc.12', false); paintChips(); tick(); } }, '24-hour')
+      );
+    };
+
+    paintChips(); tick();
+    const id = setInterval(tick, 1000);
+    w.addEventListener('uh:unmount', () => clearInterval(id));
+    w.append($.row(el('span', { class: 'fl', text: 'Format' }), chips), rows);
+  }
+});
+
+tool({
   id: 'cooking-timer', cat: 'daily', name: 'Cooking Timer',
   desc: '360° countdown ring with presets, alarm tone, and notification.',
   keywords: 'cooking timer countdown alarm kitchen ring dial',
@@ -558,42 +610,6 @@ tool({
     );
   }
 });
-
-tool({
-  id: 'world-clock', cat: 'daily', name: 'World Clock',
-  desc: 'Live times across any number of time zones, 12 or 24 hour.',
-  keywords: 'world clock timezone time zones now 12 hour 24 hour am pm',
-  render(w){
-    const ZONES = ['UTC', 'America/Los_Angeles', 'America/Denver', 'America/Chicago', 'America/New_York',
-      'America/Sao_Paulo', 'Europe/London', 'Europe/Lisbon', 'Europe/Berlin', 'Europe/Paris',
-      'Europe/Moscow', 'Africa/Cairo', 'Asia/Dubai', 'Asia/Karachi', 'Asia/Kolkata',
-      'Asia/Bangkok', 'Asia/Shanghai', 'Asia/Singapore', 'Asia/Tokyo', 'Australia/Sydney'];
-    const home = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-    let twelve = store.get('wc.12', true);
-    const chips = el('div', { class: 'row' });
-    const rows = el('div', { class: 'list' });
-
-    const fmtTime = z => new Intl.DateTimeFormat(undefined, {
-      timeZone: z, hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: twelve, hourCycle: twelve ? 'h12' : 'h23'
-    }).format(new Date());
-    const fmtDate = z => new Intl.DateTimeFormat(undefined, {
-      timeZone: z, weekday: 'short', day: '2-digit', month: 'short'
-    }).format(new Date());
-
-    const tick = () => {
-      rows.replaceChildren(...ZONES.map(z => {
-        const isHome = z === home;
-        return el('div', { class: 'item' },
-          el('span', { text: z.replace(/_/g, ' ') + (isHome ? ' · your zone' : ''),
-            style: { color: isHome ? 'var(--text)' : 'var(--muted)', fontWeight: isHome ? '600' : '400' } }),
-          el('span', { class: 'hint', style: { marginLeft: 'auto' }, text: fmtDate(z) }),
-          el('span', { style: { fontFamily: 'var(--mono)', fontVariantNumeric: 'tabular-nums',
-            width: twelve ? '112px' : '88px', textAlign: 'right' }, text: fmtTime(z) })
-        );
-      }));
-    };
 
     const paintChips = () => {
       chips.replaceChildren(
