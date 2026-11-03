@@ -2,6 +2,13 @@
 (() => {
 'use strict';
 
+/* -------- configuration (edit these) -------- */
+const CONFIG = {
+  contactEmail: 'hello@ihub.example',  /* ← replace with your real email */
+  siteName: 'iHub',
+  siteUrl: 'https://ihub.example'      /* ← used in share links */
+};
+
 function el(tag, attrs, ...kids){
   const n = document.createElement(tag);
   if (attrs) for (const [k, v] of Object.entries(attrs)){
@@ -111,10 +118,8 @@ const ui = {
     };
     const svg = mk('svg', { viewBox: `0 0 ${size} ${size}`, width: size, height: size });
     svg.style.display = 'block';
-
     const track = mk('circle', { cx: c, cy: c, r, fill: 'none', 'stroke-width': stroke });
     track.style.stroke = 'var(--line2)';
-
     const prog = mk('circle', {
       cx: c, cy: c, r, fill: 'none',
       'stroke-width': stroke, 'stroke-linecap': 'round',
@@ -122,7 +127,6 @@ const ui = {
       transform: `rotate(-90 ${c} ${c})`
     });
     prog.style.stroke = 'var(--accent)';
-
     const main = mk('text', {
       x: c, y: c + size * 0.06, 'text-anchor': 'middle',
       'font-size': String(size * 0.17), 'font-weight': '600'
@@ -130,16 +134,13 @@ const ui = {
     main.style.fill = 'var(--text)';
     main.style.fontFamily = 'var(--mono)';
     main.style.fontVariantNumeric = 'tabular-nums';
-
     const sub = mk('text', {
       x: c, y: c + size * 0.20, 'text-anchor': 'middle',
       'font-size': String(size * 0.07)
     });
     sub.style.fill = 'var(--muted)';
     sub.style.fontFamily = 'var(--mono)';
-
     svg.append(track, prog, main, sub);
-
     return {
       node: svg,
       set(frac, m = '', s = ''){
@@ -197,154 +198,29 @@ function applyTheme(){
 }
 
 /* ============================================================
-   SPLASH — driven by Web Animations API.
-   Guaranteed to fire. Handles reduced-motion gracefully.
+   SPLASH — CSS does all the animation. JS only:
+   1. respects ?nosplash=1
+   2. sets --splash-fade-start from data-duration
+   3. removes the element at the end
    ============================================================ */
 function runSplash(){
   const sp = document.getElementById('splash');
   if (!sp) return;
 
-  /* ?nosplash=1 → remove instantly */
   if (/[?&]nosplash=1/.test(location.search)){
     sp.remove();
     return;
   }
 
-  /* clamp duration to your 5–10s window */
   const dur = Math.max(5000, Math.min(10000, +(sp.dataset.duration) || 6600));
-  const fade = 600;
+  sp.style.setProperty('--splash-fade-start', Math.max(0, dur - 600) + 'ms');
 
-  /* tell CSS when to start its fallback fade-out */
-  sp.style.setProperty('--splash-out-delay', (dur - fade) + 'ms');
-
-  /* lock scroll while it plays */
   const prevOverflow = document.body.style.overflow;
   document.body.style.overflow = 'hidden';
-
-  /* remove when done (also ensures a clean DOM even if CSS fade fails) */
   setTimeout(() => {
     sp.remove();
     document.body.style.overflow = prevOverflow;
   }, dur);
-
-  /* reduced-motion: skip the elaborate sequence */
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const mark = sp.querySelector('.sp-mark');
-  const dot = sp.querySelector('.sp-dot');
-  const stem = sp.querySelector('.sp-stem');
-  const r1 = sp.querySelector('.sp-ripple.r1');
-  const r2 = sp.querySelector('.sp-ripple.r2');
-  const r3 = sp.querySelector('.sp-ripple.r3');
-  const lockup = sp.querySelector('.sp-lockup');
-  const chars = [...sp.querySelectorAll('.sp-char')];
-  const underline = sp.querySelector('.sp-underline');
-  const tag = sp.querySelector('.sp-tag');
-  const word = sp.querySelector('.sp-word');
-
-  if (reduced){
-    /* simple fade-in / hold / fade-out, no motion */
-    mark.style.transform = 'scale(1)';
-    stem.style.strokeDasharray = 'none';
-    stem.style.strokeDashoffset = '0';
-    return;
-  }
-
-  /* ---- FORCE INITIAL HIDDEN STATES (in case CSS defaults leak) ---- */
-  mark.style.transform = 'scale(2.4) rotate(-45deg)';
-  dot.style.opacity = '0';
-  stem.style.strokeDasharray = '30';
-  stem.style.strokeDashoffset = '30';
-  r1.style.opacity = '0';
-  r2.style.opacity = '0';
-  r3.style.opacity = '0';
-  chars.forEach(c => { c.style.opacity = '0'; c.style.transform = 'translateY(24px) rotate(8deg)'; });
-  underline.style.transform = 'scaleX(0)';
-  tag.style.opacity = '0';
-
-  const anim = (node, kf, opt) => {
-    try { return node.animate(kf, { fill: 'forwards', ...opt }); }
-    catch (e) { console.warn('animate fail', e); return null; }
-  };
-
-  /* 1) dot drops in with bounce (0.10 → 0.85s) */
-  anim(dot, [
-    { transform: 'translateY(-80px) scale(0.3)', opacity: 0, offset: 0 },
-    { transform: 'translateY(6px) scale(1.15)', opacity: 1, offset: 0.55 },
-    { transform: 'translateY(-3px) scale(0.95)', offset: 0.78 },
-    { transform: 'translateY(0) scale(1)', opacity: 1, offset: 1 }
-  ], { duration: 800, delay: 100, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
-
-  /* 2) two ripples expand from the dot (0.72 → 1.95s) */
-  anim(r1, [
-    { transform: 'scale(1)', opacity: 0.85 },
-    { transform: 'scale(4.2)', opacity: 0 }
-  ], { duration: 950, delay: 720, easing: 'cubic-bezier(0.1, 0.8, 0.3, 1)' });
-
-  anim(r2, [
-    { transform: 'scale(1)', opacity: 0.55 },
-    { transform: 'scale(6)', opacity: 0 }
-  ], { duration: 1200, delay: 880, easing: 'cubic-bezier(0.1, 0.8, 0.3, 1)' });
-
-  /* 3) stem draws upward (0.85 → 1.7s) */
-  anim(stem, [
-    { strokeDashoffset: 30 },
-    { strokeDashoffset: 0 }
-  ], { duration: 850, delay: 850, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' });
-
-  /* 4) mark SPINS 360° + shrinks to true size (1.7 → 2.6s) */
-  anim(mark, [
-    { transform: 'scale(2.4) rotate(-45deg)', opacity: 1 },
-    { transform: 'scale(0.94) rotate(200deg)', offset: 0.7 },
-    { transform: 'scale(1) rotate(315deg)' }
-  ], { duration: 950, delay: 1700, easing: 'cubic-bezier(0.45, 0, 0.15, 1)' });
-
-  /* 5) third ripple fires as the mark settles (2.0 → 2.9s) */
-  anim(r3, [
-    { transform: 'scale(0.8)', opacity: 0.55 },
-    { transform: 'scale(3.2)', opacity: 0 }
-  ], { duration: 900, delay: 2050, easing: 'cubic-bezier(0.1, 0.8, 0.3, 1)' });
-
-  /* 6) wordmark letters cascade in (2.45 → 3.1s) */
-  chars.forEach((c, i) => {
-    anim(c, [
-      { transform: 'translateY(24px) rotate(8deg)', opacity: 0 },
-      { transform: 'translateY(0) rotate(0deg)', opacity: 1 }
-    ], { duration: 520, delay: 2450 + i * 130, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
-  });
-
-  /* 7) lockup slides left by half wordmark width so group stays centered */
-  requestAnimationFrame(() => {
-    const wordW = word.offsetWidth || 100;
-    anim(lockup, [
-      { transform: 'translateX(0)' },
-      { transform: `translateX(${-(wordW / 2)}px)` }
-    ], { duration: 700, delay: 2450, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
-  });
-
-  /* 8) underline sweeps (3.15 → 3.75s) */
-  anim(underline, [
-    { transform: 'scaleX(0)' },
-    { transform: 'scaleX(1)' }
-  ], { duration: 600, delay: 3150, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' });
-
-  /* 9) tagline fades (3.65 → 4.15s) */
-  anim(tag, [
-    { opacity: 0, transform: 'translateY(6px)' },
-    { opacity: 1, transform: 'translateY(0)' }
-  ], { duration: 500, delay: 3650, easing: 'ease-out' });
-
-  /* 10) breathing pulse during the hold (4.4s) */
-  setTimeout(() => {
-    if (!mark.isConnected) return;
-    anim(mark, [
-      { transform: 'scale(1)' },
-      { transform: 'scale(1.06)' },
-      { transform: 'scale(1)' }
-    ], { duration: 1600, iterations: 2, easing: 'ease-in-out' });
-  }, 4400);
-
-  /* 11) final fade via CSS animation, then remove */
-  /* CSS is already set to fade at `dur − fade`. Nothing more to do. */
 }
 
 /* ---------- favorites / recents ---------- */
@@ -356,6 +232,12 @@ function toggleFav(id){
 function markRecent(id){
   S.recent = [id, ...S.recent.filter(x => x !== id)].slice(0, 12);
   store.set('recent', S.recent);
+}
+
+function randomTool(){
+  if (!TOOLS.length) return;
+  const t = TOOLS[Math.floor(Math.random() * TOOLS.length)];
+  location.hash = '#/t/' + t.id;
 }
 
 function card(t){
@@ -377,13 +259,27 @@ function section(title, list, href){
 
 const view = document.getElementById('view');
 
+function setPrimaryNav(active){
+  document.querySelectorAll('.primary-nav .cat').forEach(a =>
+    a.setAttribute('aria-current', String(a.dataset.cat === active)));
+  if (active !== 'home') {
+    document.querySelectorAll('#cats .cat').forEach(a => a.setAttribute('aria-current', 'false'));
+  }
+}
+
 function viewHome(){
   const favs = TOOLS.filter(t => S.favs.includes(t.id));
   const recent = TOOLS.filter(t => S.recent.includes(t.id));
   view.replaceChildren(
     el('div', { class: 'hero' },
       el('h1', { text: 'Every ordinary digital task, one place.' }),
-      el('p', { text: `${TOOLS.length} tools across ${CATS.length} categories. Runs in your browser — files never leave the tab unless a tool is marked API.` })
+      el('p', { text: 'Files never leave your browser. No accounts, no uploads, no tracking — every tool runs locally unless marked API.' }),
+      el('div', { class: 'stats' },
+        el('span', {}, el('b', { text: String(TOOLS.length) }), ' tools'),
+        el('span', {}, el('b', { text: String(CATS.length) }), ' categories'),
+        el('span', {}, el('b', { text: '0' }), ' uploads'),
+        el('span', {}, el('b', { text: '100%' }), ' client-side')
+      )
     ),
     favs.length ? section('Favorites', favs) : '',
     recent.length ? section('Recently used', recent) : '',
@@ -392,7 +288,8 @@ function viewHome(){
       return section(c.name, list.slice(0, 6), list.length > 6 ? '#/c/' + c.id : null);
     })
   );
-  document.querySelectorAll('.cat').forEach(a => a.setAttribute('aria-current', String(a.dataset.cat === 'home')));
+  setPrimaryNav('home');
+  document.querySelectorAll('#cats .cat').forEach(a => a.setAttribute('aria-current', String(a.dataset.cat === 'home')));
 }
 
 function viewCategory(id){
@@ -405,7 +302,8 @@ function viewCategory(id){
     el('p', { class: 'tool-desc', text: `${list.length} tools` }),
     grid(list)
   );
-  document.querySelectorAll('.cat').forEach(a => a.setAttribute('aria-current', String(a.dataset.cat === id)));
+  setPrimaryNav('home');
+  document.querySelectorAll('#cats .cat').forEach(a => a.setAttribute('aria-current', String(a.dataset.cat === id)));
 }
 
 function viewList(ids, title, blurb){
@@ -416,6 +314,7 @@ function viewList(ids, title, blurb){
     el('p', { class: 'tool-desc', text: blurb }),
     list.length ? grid(list) : el('div', { class: 'empty', text: 'Nothing saved yet. Open a tool and hit Save.' })
   );
+  setPrimaryNav('home');
 }
 
 function viewSearch(q){
@@ -436,6 +335,7 @@ function viewSearch(q){
     el('p', { class: 'tool-desc', text: `${hits.length} result${hits.length === 1 ? '' : 's'}` }),
     hits.length ? grid(hits) : el('div', { class: 'empty', text: 'No tool matched. Try “pdf”, “hash”, “timer”, “json”.' })
   );
+  setPrimaryNav('home');
 }
 
 function viewTool(id){
@@ -447,22 +347,36 @@ function viewTool(id){
   if (oldWs) oldWs.dispatchEvent(new CustomEvent('uh:unmount'));
 
   const c = CATS.find(x => x.id === t.cat);
+
   const favBtn = el('button', {
     class: 'fav-btn', type: 'button',
     'data-on': String(S.favs.includes(id)),
     onclick: e => { toggleFav(id); e.currentTarget.dataset.on = String(S.favs.includes(id)); e.currentTarget.textContent = S.favs.includes(id) ? '★ Saved' : '☆ Save'; }
   }, S.favs.includes(id) ? '★ Saved' : '☆ Save');
 
+  const shareBtn = el('button', {
+    class: 'share-btn', type: 'button',
+    onclick: async e => {
+      const url = CONFIG.siteUrl.replace(/\/$/, '') + '/#/t/' + id;
+      await copy(url);
+      const orig = e.currentTarget.textContent;
+      e.currentTarget.textContent = 'Copied';
+      setTimeout(() => { e.currentTarget.textContent = orig; }, 1200);
+    }
+  }, 'Share');
+
   const ws = el('div', { class: 'workspace' });
   view.replaceChildren(
     el('div', { class: 'crumb' }, el('a', { href: '#/' }, 'Home'), ' / ', el('a', { href: '#/c/' + t.cat }, c?.name || ''), ' / ', t.name),
-    el('div', { class: 'tool-head' }, el('h1', { text: t.name }), favBtn),
+    el('div', { class: 'tool-head' }, el('h1', { text: t.name }), el('div', { class: 'tool-actions' }, shareBtn, favBtn)),
     el('p', { class: 'tool-desc', text: t.desc }),
     ws,
     t.how ? el('details', { class: 'how' }, el('summary', { text: 'How it works' }), el('p', { text: t.how })) : ''
   );
   view.focus({ preventScroll: true });
   window.scrollTo({ top: 0 });
+  setPrimaryNav('home');
+  document.querySelectorAll('#cats .cat').forEach(a => a.setAttribute('aria-current', 'false'));
 
   Promise.resolve()
     .then(() => t.render(ws))
@@ -471,6 +385,133 @@ function viewTool(id){
     });
 }
 
+/* ---------- static pages ---------- */
+
+function viewContact(){
+  const subj = ui.in('What is this about?', '');
+  const body = ui.ta('Your message…');
+  const email = ui.in('your@email.com (optional)', '');
+  const status = ui.hint('');
+
+  const send = () => {
+    if (!body.value.trim()){
+      status.textContent = 'Write a message first.';
+      return;
+    }
+    const to = CONFIG.contactEmail;
+    const subject = encodeURIComponent(subj.value.trim() || 'iHub — feedback');
+    const message = body.value + (email.value.trim() ? '\n\n— ' + email.value.trim() : '');
+    const href = `mailto:${to}?subject=${subject}&body=${encodeURIComponent(message)}`;
+    location.href = href;
+    status.textContent = 'Opening your email app…';
+  };
+
+  const copyAddr = async () => {
+    await copy(CONFIG.contactEmail);
+    status.textContent = `Copied ${CONFIG.contactEmail}`;
+  };
+
+  view.replaceChildren(
+    el('div', { class: 'crumb' }, el('a', { href: '#/' }, 'Home'), ' / Contact'),
+    el('div', { class: 'page' },
+      el('h1', { text: 'Contact' }),
+      el('p', { class: 'lede', text: 'Feedback, bug reports, feature requests, or just a hello — all welcome. This is a static site, so nothing is transmitted from this page; the button below opens your own email app with the message pre-filled.' }),
+
+      el('div', { class: 'sheet' },
+        el('h3', { text: 'Direct email' }),
+        el('p', {}, el('strong', { text: CONFIG.contactEmail })),
+        el('div', { class: 'row' },
+          ui.btn('Copy address', copyAddr),
+          el('a', { class: 'btn', href: 'mailto:' + CONFIG.contactEmail }, 'Open in mail app')
+        )
+      ),
+
+      el('div', { class: 'sheet' },
+        el('h3', { text: 'Send a message' }),
+        ui.label('Subject', subj),
+        ui.label('Your email (so I can reply)', email),
+        ui.label('Message', body),
+        ui.btn('Open in mail app', send, true),
+        status
+      ),
+
+      el('p', { class: 'hint', text: 'No data is sent by this page. The mailto: link hands the message to your OS mail client. To route messages to a form service, wire an endpoint and update CONFIG.contactEmail accordingly.' })
+    )
+  );
+  setPrimaryNav('contact');
+}
+
+function viewAbout(){
+  view.replaceChildren(
+    el('div', { class: 'crumb' }, el('a', { href: '#/' }, 'Home'), ' / About'),
+    el('div', { class: 'page' },
+      el('h1', { text: 'About iHub' }),
+      el('p', { class: 'lede', text: 'A single-page collection of everyday utilities. Every tool runs in the browser — no server, no uploads, no accounts.' }),
+
+      el('h2', { text: 'What it is' }),
+      el('p', { text: `${TOOLS.length} tools across ${CATS.length} categories: PDF and image manipulation, text utilities, calculators, file and developer tools, productivity trackers, network lookups, and daily-life helpers.` }),
+
+      el('h2', { text: 'How it works' }),
+      el('ul', {},
+        el('li', { text: 'Static HTML, CSS and JavaScript — no build step, no framework, no bundler.' }),
+        el('li', { text: 'Files you drop are handled with the File API and never leave your tab. Storage is localStorage only.' }),
+        el('li', { text: 'Tools marked API reach the open internet (currency rates, DNS, IP lookup); everything else is offline-capable once loaded.' }),
+        el('li', { text: 'PDF, image and QR features pull their libraries on first use from jsDelivr.' })
+      ),
+
+      el('h2', { text: 'Privacy' }),
+      el('p', { text: 'No analytics, no cookies, no tracking pixels. What you type or upload stays in this browser session unless a tool explicitly says otherwise.' }),
+
+      el('h2', { text: 'Tech stack' }),
+      el('ul', {},
+        el('li', { text: 'HTML5 + CSS3 + vanilla JavaScript (ES2022).' }),
+        el('li', { text: 'pdf-lib — PDF editing and generation.' }),
+        el('li', { text: 'pdf.js — PDF rendering and text extraction.' }),
+        el('li', { text: 'jsPDF — PDF creation from text and images.' }),
+        el('li', { text: 'JSZip — ZIP archives in the browser.' }),
+        el('li', { text: 'Canvas API — all image manipulation.' }),
+        el('li', { text: 'Web Crypto — hashing, UUIDs, password generation.' }),
+        el('li', { text: 'localStorage — prefs, favorites, notes, trackers.' })
+      ),
+
+      el('h2', { text: 'License' }),
+      el('p', { text: 'Personal use. Fork it, rename it, ship it.' })
+    )
+  );
+  setPrimaryNav('about');
+}
+
+function viewShortcuts(){
+  const rows = [
+    ['/', 'Focus the search box'],
+    ['Esc', 'Clear search / close theme popover'],
+    ['R', 'Open a random tool'],
+    ['?', 'Open this shortcuts page'],
+    ['1 – 9', 'Jump to the Nth category (home page)'],
+    ['Enter', 'Activate focused element'],
+    ['← / →', 'Navigate tabs (when a tab is focused)'],
+  ];
+  view.replaceChildren(
+    el('div', { class: 'crumb' }, el('a', { href: '#/' }, 'Home'), ' / Shortcuts'),
+    el('div', { class: 'page' },
+      el('h1', { text: 'Keyboard shortcuts' }),
+      el('p', { class: 'lede', text: 'Fast paths for the things you do most. All shortcuts are disabled while a text field is focused.' }),
+      el('div', { class: 'sheet', style: { padding: '0' } },
+        el('table', { class: 'kbd-table' },
+          el('tbody', {}, ...rows.map(([k, d]) =>
+            el('tr', {},
+              el('td', {}, el('kbd', { text: k })),
+              el('td', { text: d })
+            )
+          ))
+        )
+      )
+    )
+  );
+  setPrimaryNav('shortcuts');
+}
+
+/* ---------- router ---------- */
 function route(){
   const h = location.hash.replace(/^#\/?/, '');
   document.getElementById('side').classList.remove('open');
@@ -481,20 +522,27 @@ function route(){
   if (seg === 'favorites') return viewList(S.favs, 'Favorites', 'Your saved tools, in order of saving.');
   if (seg === 'recent') return viewList(S.recent, 'Recently used', 'Last twelve tools you opened.');
   if (seg === 'q') return viewSearch(decodeURIComponent(a || ''));
+  if (seg === 'contact') return viewContact();
+  if (seg === 'about') return viewAbout();
+  if (seg === 'shortcuts') return viewShortcuts();
   viewHome();
 }
 
 function buildNav(){
   const nav = document.getElementById('cats');
   nav.replaceChildren(
-    el('a', { class: 'cat', 'data-cat': 'home', href: '#/' }, el('span', { text: 'All tools' }), el('span', { class: 'n', text: String(TOOLS.length) })),
     ...CATS.map(c => {
       const n = TOOLS.filter(t => t.cat === c.id).length;
       return el('a', { class: 'cat', 'data-cat': c.id, href: '#/c/' + c.id },
         el('span', { text: c.name }), el('span', { class: 'n', text: String(n) }));
     })
   );
+  const total = document.querySelector('[data-count="tools"]');
+  if (total) total.textContent = String(TOOLS.length);
+  const ph = document.getElementById('search');
+  if (ph) ph.placeholder = `Search ${TOOLS.length} tools…  (press /)`;
 }
+
 function buildThemePop(){
   const list = document.getElementById('themeList');
   list.replaceChildren(...THEMES.map(t =>
@@ -517,6 +565,8 @@ function boot(){
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (S.mode === 'auto') applyTheme(); });
 
   document.getElementById('navToggle').onclick = () => document.getElementById('side').classList.toggle('open');
+  document.getElementById('randomBtn').onclick = randomTool;
+
   const pop = document.getElementById('themePop');
   document.getElementById('themeBtn').onclick = e => { e.stopPropagation(); pop.hidden = !pop.hidden; };
   document.addEventListener('click', e => { if (!pop.hidden && !pop.contains(e.target)) pop.hidden = true; });
@@ -534,20 +584,37 @@ function boot(){
   search.onkeydown = e => {
     if (e.key === 'Escape'){ search.value = ''; search.blur(); location.hash = '#/'; }
   };
+
   document.addEventListener('keydown', e => {
-    if (e.key === '/' && document.activeElement !== search && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)){
-      e.preventDefault(); search.focus(); search.select();
+    const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+
+    if (e.key === '/' && !inField){
+      e.preventDefault(); search.focus(); search.select(); return;
+    }
+    if (e.key === 'Escape'){
+      if (!pop.hidden) pop.hidden = true;
+      if (document.activeElement === search){ search.value = ''; search.blur(); }
+      return;
+    }
+    if (inField) return;
+
+    if (e.key === 'r' || e.key === 'R'){ e.preventDefault(); randomTool(); return; }
+    if (e.key === '?'){ e.preventDefault(); location.hash = '#/shortcuts'; return; }
+
+    if (/^[1-9]$/.test(e.key)){
+      const idx = parseInt(e.key, 10) - 1;
+      if (CATS[idx]){ e.preventDefault(); location.hash = '#/c/' + CATS[idx].id; }
     }
   });
 
   window.addEventListener('hashchange', route);
   route();
 
-  /* splash runs last so the rest of the page is already rendered underneath */
+  /* splash runs last — page already rendered underneath */
   runSplash();
 }
 
-window.UH = { el, tool, ui, lib, download, readFile, bytes, copy, store, CATS, TOOLS, S };
+window.UH = { el, tool, ui, lib, download, readFile, bytes, copy, store, CATS, TOOLS, S, CONFIG };
 window.addEventListener('DOMContentLoaded', boot);
 
 })();
