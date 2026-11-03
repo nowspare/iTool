@@ -11,6 +11,9 @@ body{
   font-family:var(--font); font-size:15px; line-height:1.55;
   background:var(--bg); color:var(--text);
   -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
 }
 a{color:inherit;text-decoration:none}
 button,input,textarea,select{font:inherit;color:inherit}
@@ -48,11 +51,14 @@ html[data-theme="slate"][data-mode="dark"]{--bg:#0b0e12;--bg2:#11151a;--surface:
 #navToggle{display:none}
 
 /* ---- shell ---- */
-.shell{display:grid;grid-template-columns:236px 1fr;max-width:var(--max);margin:0 auto;gap:0}
+.shell{display:grid;grid-template-columns:236px 1fr;max-width:var(--max);margin:0 auto;width:100%;flex:1}
 .side{
   position:sticky; top:53px; align-self:start; height:calc(100vh - 53px); overflow:auto;
   padding:18px 12px 40px; border-right:1px solid var(--line);
 }
+.primary-nav{display:flex;flex-direction:column;gap:1px;margin-bottom:14px}
+.side-divider{height:1px;background:var(--line);margin:8px 4px 14px}
+.side-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 10px 6px;font-weight:600}
 .cats{display:flex;flex-direction:column;gap:1px}
 .cat{
   display:flex;align-items:center;justify-content:space-between;gap:8px;
@@ -60,17 +66,48 @@ html[data-theme="slate"][data-mode="dark"]{--bg:#0b0e12;--bg2:#11151a;--surface:
 }
 .cat:hover{background:var(--hover);color:var(--text)}
 .cat[aria-current="true"]{background:var(--hover);color:var(--text);font-weight:600}
+.cat.primary{color:var(--text);font-weight:500}
 .cat .n{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .side-foot{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
 .side-link{padding:7px 10px;border-radius:8px;font-size:14px;color:var(--muted)}
 .side-link:hover{background:var(--hover);color:var(--text)}
 
-.view{padding:28px 34px 80px;min-height:70vh;outline:none}
+.view{padding:28px 34px 60px;min-height:70vh;outline:none}
+
+/* ---- footer ---- */
+.foot{
+  max-width:var(--max);
+  width:100%;
+  margin:0 auto;
+  padding:22px 24px 26px;
+  border-top:1px solid var(--line);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:14px;
+  font-size:13px;
+  color:var(--muted);
+}
+.foot-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.foot-mark{display:inline-flex;align-items:center;gap:7px;color:var(--text)}
+.foot-mark .mark-svg{width:18px;height:18px;color:var(--accent)}
+.foot-mark strong{font-weight:600;letter-spacing:-.01em}
+.foot-dot{opacity:.5}
+.foot-credit{color:var(--muted)}
+.foot-nav{display:flex;gap:18px;flex-wrap:wrap}
+.foot-nav a{color:var(--muted);transition:color .12s}
+.foot-nav a:hover{color:var(--text)}
+@media(max-width:560px){
+  .foot{flex-direction:column;align-items:flex-start;gap:10px}
+}
 
 /* ---- home ---- */
-.hero{max-width:640px;margin:22px 0 34px}
+.hero{max-width:680px;margin:22px 0 34px}
 .hero h1{font-size:30px;letter-spacing:-.02em;margin:0 0 10px;font-weight:650}
 .hero p{margin:0;color:var(--muted);font-size:15px}
+.hero .stats{display:flex;gap:20px;margin-top:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.hero .stats b{color:var(--text);font-weight:650;font-family:var(--mono);font-variant-numeric:tabular-nums}
 
 .sect{margin:0 0 34px}
 .sect-head{display:flex;align-items:baseline;gap:10px;margin:0 0 12px}
@@ -97,9 +134,11 @@ html[data-theme="slate"][data-mode="dark"]{--bg:#0b0e12;--bg2:#11151a;--surface:
 /* ---- tool view ---- */
 .crumb{font-size:13px;color:var(--muted);margin-bottom:14px;display:flex;gap:7px;align-items:center}
 .crumb a:hover{color:var(--text)}
-.tool-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
+.tool-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px;flex-wrap:wrap}
 .tool-head h1{font-size:24px;margin:0;letter-spacing:-.02em;font-weight:650}
-.fav-btn{margin-left:auto;flex:none;background:none;border:1px solid var(--line2);border-radius:8px;padding:5px 11px;font-size:13px;cursor:pointer;color:var(--muted)}
+.tool-actions{margin-left:auto;flex:none;display:flex;gap:6px}
+.fav-btn,.share-btn{background:none;border:1px solid var(--line2);border-radius:8px;padding:5px 11px;font-size:13px;cursor:pointer;color:var(--muted)}
+.fav-btn:hover,.share-btn:hover{background:var(--hover);color:var(--text)}
 .fav-btn[data-on="true"]{color:var(--accent);border-color:var(--accent)}
 .tool-desc{color:var(--muted);margin:0 0 20px;max-width:70ch}
 .workspace{display:flex;flex-direction:column;gap:14px;max-width:860px}
@@ -189,43 +228,56 @@ details.how summary{cursor:pointer;font-size:13px;color:var(--muted)}
 details.how p{font-size:13.5px;color:var(--muted);margin:9px 0 0;max-width:70ch}
 canvas.edit{cursor:crosshair;border:1px solid var(--line);border-radius:8px;display:block;max-width:100%}
 
+/* ---- static content pages (contact/about/shortcuts) ---- */
+.page{max-width:780px}
+.page h1{font-size:28px;letter-spacing:-.02em;margin:0 0 6px;font-weight:650}
+.page .lede{color:var(--muted);font-size:15px;margin:0 0 26px;max-width:65ch}
+.page h2{font-size:15px;font-weight:650;letter-spacing:-.005em;margin:28px 0 10px}
+.page p{max-width:65ch;margin:0 0 12px}
+.page ul{max-width:65ch;padding-left:20px;color:var(--muted);margin:0 0 14px}
+.page ul li{margin-bottom:6px}
+.page a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.page a:hover{filter:brightness(1.1)}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;margin-bottom:20px}
+.sheet h3{font-size:15px;margin:0 0 10px;font-weight:650}
+.sheet .field{margin-bottom:14px}
+.kbd-table{width:100%;border-collapse:collapse;font-size:14px}
+.kbd-table td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.kbd-table tr:last-child td{border-bottom:0}
+.kbd-table td:first-child{width:140px}
+.kbd-table kbd{display:inline-block;font-family:var(--mono);font-size:12px;padding:2px 6px;border:1px solid var(--line2);border-radius:5px;background:var(--bg2);color:var(--text);min-width:20px;text-align:center}
+.kbd-table td:last-child{color:var(--muted)}
+
 /* ============================================================
-   SPLASH — the "i" that draws, ripples, spins, and settles
-   Timing is set from JS. CSS provides the initial state and the
-   guaranteed fade-out if JS ever fails to run.
+   SPLASH — PURE CSS animations. No JS involvement.
+   Guaranteed to play if this stylesheet loads.
    ============================================================ */
 #splash{
   position:fixed; inset:0; z-index:9999;
   display:grid; place-items:center;
   background:var(--bg);
-  /* JS overrides --splash-out-delay to (duration − 600ms). Fallback: 6s. */
-  animation:splash-out .6s ease-in forwards;
-  animation-delay:var(--splash-out-delay, 6s);
+  /* JS may override --splash-fade-start via data-duration. Default 6s. */
+  animation: splashOut .6s ease-in var(--splash-fade-start, 6s) forwards;
   will-change:opacity;
 }
-@keyframes splash-out{
+@keyframes splashOut{
   to{ opacity:0; visibility:hidden; pointer-events:none }
 }
 
 .sp-stage{
   display:grid;
   justify-items:center;
-  gap:20px;
+  gap:18px;
   text-align:center;
   padding:24px;
 }
 
-/* lockup: the i-mark and the "Hub" text sit side by side */
 .sp-lockup{
   display:flex;
   align-items:center;
-  justify-content:center;
-  gap:0;
-  transform-origin:center center;
-  will-change:transform;
+  gap:6px;
 }
 
-/* slot keeps a stable 64×64 layout box while the SVG can overflow */
 .sp-mark-slot{
   position:relative;
   width:64px;
@@ -233,24 +285,67 @@ canvas.edit{cursor:crosshair;border:1px solid var(--line);border-radius:8px;disp
   flex:none;
 }
 
-/* the SVG itself; JS animates transform on this */
 .sp-mark{
   position:absolute;
   inset:0;
-  width:64px;
-  height:64px;
+  width:100%;
+  height:100%;
   color:var(--accent);
   overflow:visible;
+  transform-box:view-box;
   transform-origin:center center;
-  transform:scale(2.4);
-  will-change:transform;
+  animation:
+    markPop    .7s cubic-bezier(.34,1.56,.64,1) 1.6s both,
+    markBreathe 3s ease-in-out 4.4s infinite;
+}
+@keyframes markPop{
+  0%   { transform: scale(1) }
+  55%  { transform: scale(1.14) }
+  100% { transform: scale(1) }
+}
+@keyframes markBreathe{
+  0%,100%{ transform: scale(1) }
+  50%    { transform: scale(1.05) }
 }
 
-/* children default to their FINAL visible state (JS overrides to hide them) */
-.sp-dot   { transform-box:fill-box; transform-origin:center; will-change:transform,opacity }
-.sp-stem  { will-change:stroke-dashoffset }
-.sp-ripple{ transform-box:fill-box; transform-origin:center; opacity:0; will-change:transform,opacity }
+/* -- dot: drops in with bounce -- */
+.sp-dot{
+  transform-box:fill-box;
+  transform-origin:center;
+  animation: dotDrop .8s cubic-bezier(.34,1.56,.64,1) .1s both;
+}
+@keyframes dotDrop{
+  0%   { transform: translateY(-60px) scale(.3); opacity: 0 }
+  50%  { transform: translateY(6px) scale(1.15); opacity: 1 }
+  75%  { transform: translateY(-3px) scale(.95) }
+  100% { transform: translateY(0) scale(1); opacity: 1 }
+}
 
+/* -- stem: draws upward -- */
+.sp-stem{
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: stemDraw .9s cubic-bezier(.65,0,.35,1) .8s forwards;
+}
+@keyframes stemDraw{
+  to{ stroke-dashoffset: 0 }
+}
+
+/* -- ripples: expand from origin and fade -- */
+.sp-ripple{
+  transform-box:fill-box;
+  transform-origin:center;
+  opacity:0;
+}
+.sp-ripple.r1{ animation: ripple 1s cubic-bezier(.1,.8,.3,1) .7s }
+.sp-ripple.r2{ animation: ripple 1.2s cubic-bezier(.1,.8,.3,1) .9s }
+.sp-ripple.r3{ animation: ripple 1s cubic-bezier(.1,.8,.3,1) 1.7s }
+@keyframes ripple{
+  0%   { transform: scale(1); opacity: .85 }
+  100% { transform: scale(4.5); opacity: 0 }
+}
+
+/* -- wordmark: letters cascade in -- */
 .sp-word{
   font-size:44px;
   font-weight:600;
@@ -258,44 +353,75 @@ canvas.edit{cursor:crosshair;border:1px solid var(--line);border-radius:8px;disp
   line-height:1;
   color:var(--text);
   white-space:nowrap;
-  margin-left:6px;
 }
 .sp-char{
   display:inline-block;
-  will-change:transform,opacity;
-  /* staggered rotation makes it feel hand-set */
+  opacity:0;
+  transform: translateY(22px);
+  animation: charIn .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+.sp-char:nth-child(1){ animation-delay: 2.40s; font-weight:400 }
+.sp-char:nth-child(2){ animation-delay: 2.55s; font-weight:650 }
+.sp-char:nth-child(3){ animation-delay: 2.70s; font-weight:650 }
+@keyframes charIn{
+  to{ opacity:1; transform:translateY(0) }
 }
 
+/* -- underline sweeps -- */
 .sp-underline{
   width:220px;
   height:2px;
   background:var(--accent);
   border-radius:1px;
+  transform: scaleX(0);
   transform-origin:left center;
-  transform:scaleX(1); /* final state; JS overrides to 0 then animates */
-  will-change:transform;
+  animation: underlineSweep .6s cubic-bezier(.65,0,.35,1) 3.1s forwards;
   opacity:.85;
 }
+@keyframes underlineSweep{
+  to{ transform: scaleX(1) }
+}
 
+/* -- tagline fades -- */
 .sp-tag{
   font-size:13px;
   letter-spacing:.01em;
   color:var(--muted);
+  opacity:0;
+  animation: tagFade .5s ease-out 3.6s forwards;
+}
+@keyframes tagFade{
+  to{ opacity:1 }
+}
+
+/* -- reduced motion: show final state, keep the timer -- */
+@media (prefers-reduced-motion: reduce){
+  .sp-mark   { animation: none !important; transform: none !important }
+  .sp-dot    { animation: none !important; transform: none !important; opacity: 1 !important }
+  .sp-stem   { animation: none !important; stroke-dashoffset: 0 !important }
+  .sp-ripple { animation: none !important; display: none !important }
+  .sp-char   { animation: none !important; transform: none !important; opacity: 1 !important }
+  .sp-underline{ animation: none !important; transform: scaleX(1) !important }
+  .sp-tag    { animation: none !important; opacity: 1 !important }
 }
 
 @media(max-width:900px){
   .shell{grid-template-columns:1fr}
-  .side{position:fixed;left:0;top:53px;bottom:0;width:250px;background:var(--bg);z-index:35;border-right:1px solid var(--line);transform:translateX(-102%);transition:transform .16s}
+  .side{
+    position:fixed;left:0;top:53px;bottom:0;width:260px;
+    background:var(--bg);z-index:35;border-right:1px solid var(--line);
+    transform:translateX(-102%);transition:transform .16s;
+  }
   .side.open{transform:none}
   #navToggle{display:block}
-  .view{padding:20px 16px 70px}
+  .view{padding:20px 16px 60px}
 }
 @media(max-width:560px){
   .brand .brand-name{display:none}
   .hero h1{font-size:24px}
   .grid{grid-template-columns:1fr}
-  .sp-word{font-size:36px}
-  .sp-mark-slot{width:56px;height:56px}
-  .sp-mark{width:56px;height:56px}
-  .sp-underline{width:180px}
+  .sp-word{font-size:34px}
+  .sp-mark-slot{width:52px;height:52px}
+  .sp-underline{width:170px}
+  .page h1{font-size:22px}
 }
